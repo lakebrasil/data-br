@@ -1,11 +1,16 @@
 # 100% open-source local dev stack — MinIO (S3) + Nessie (Iceberg REST catalog).
 # Zero AWS. Roda com `docker compose up -d`.
 #
+# Host ports — escolhidos pra evitar colisão com daemons locais comuns:
+#   MinIO API     → 9100  (S3 endpoint)
+#   MinIO Console → 9101
+#   Nessie        → 19120
+#
 # Depois, no shell:
 #
-#   export ICEBERG_WAREHOUSE=s3://warehouse/
-#   export ICEBERG_REST_ENDPOINT=http://localhost:19120/iceberg/v1
-#   export S3_ENDPOINT_URL=http://localhost:9000
+#   export ICEBERG_WAREHOUSE=warehouse
+#   export ICEBERG_REST_ENDPOINT=http://localhost:19120/iceberg/
+#   export S3_ENDPOINT_URL=http://localhost:9100
 #   export AWS_ACCESS_KEY_ID=minioadmin
 #   export AWS_SECRET_ACCESS_KEY=minioadmin
 #   export AWS_REGION=us-east-1
@@ -13,15 +18,15 @@
 #   pip install -e ./pipelines
 #   lakebrasil run anp_precos --no-fetch
 #
-# Console MinIO: http://localhost:9001  (user: minioadmin / pass: minioadmin)
+# Console MinIO: http://localhost:9101  (user: minioadmin / pass: minioadmin)
 # Console Nessie: http://localhost:19120
 services:
   minio:
     image: minio/minio:latest
     container_name: lakebrasil-minio
     ports:
-      - "9000:9000"   # S3 API
-      - "9001:9001"   # web console
+      - "9100:9000"   # S3 API
+      - "9101:9001"   # web console
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -59,15 +64,20 @@ services:
     ports:
       - "19120:19120"  # REST API + UI
     environment:
-      # Use Iceberg REST API (Nessie's modern interface)
+      # Iceberg REST API (Nessie's modern interface)
+      NESSIE_VERSION_STORE_TYPE: IN_MEMORY
       nessie.catalog.default-warehouse: warehouse
       nessie.catalog.warehouses.warehouse.location: s3://warehouse/
       nessie.catalog.service.s3.default-options.region: us-east-1
+      # endpoint = Nessie → MinIO (inside docker network)
       nessie.catalog.service.s3.default-options.endpoint: http://minio:9000/
+      # external-endpoint = vended back to clients (reachable from host)
+      nessie.catalog.service.s3.default-options.external-endpoint: http://localhost:9100/
       nessie.catalog.service.s3.default-options.path-style-access: "true"
-      nessie.catalog.service.s3.default-options.access-key: urn:nessie-secret:quarkus:minio-creds
-      nessie.catalog.secrets.minio-creds.name: minioadmin
-      nessie.catalog.secrets.minio-creds.secret: minioadmin
+      # MinIO credentials — URN points to a quarkus config-path secret (full path).
+      nessie.catalog.service.s3.default-options.access-key: urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key
+      nessie.catalog.secrets.access-key.name: minioadmin
+      nessie.catalog.secrets.access-key.secret: minioadmin
       nessie.server.authentication.enabled: "false"
 
 volumes:

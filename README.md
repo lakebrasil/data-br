@@ -85,18 +85,18 @@ lakebrasil run rais --no-fetch
 
 #### b) 100% OSS local — MinIO + Nessie via Docker (zero AWS)
 ```bash
-docker compose up -d            # sobe MinIO (porta 9000) + Nessie (19120)
+docker compose up -d            # sobe MinIO (porta 9100) + Nessie (19120)
 
-export ICEBERG_WAREHOUSE=s3://warehouse/
-export ICEBERG_REST_ENDPOINT=http://localhost:19120/iceberg/v1
-export S3_ENDPOINT_URL=http://localhost:9000
+export ICEBERG_WAREHOUSE=warehouse
+export ICEBERG_REST_ENDPOINT=http://localhost:19120/iceberg/
+export S3_ENDPOINT_URL=http://localhost:9100
 export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_REGION=us-east-1
 
 lakebrasil run rais --no-fetch
 ```
-Console MinIO: `http://localhost:9001` · Nessie: `http://localhost:19120`
+Console MinIO: `http://localhost:9101` · Nessie: `http://localhost:19120`
 
 #### c) Vanilla REST catalog (Lakekeeper, Tabular, qualquer Iceberg REST)
 ```bash
