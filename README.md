@@ -72,17 +72,44 @@ from lakebrasil.pipelines import bpc, rais, sinisa
 bpc.main()  # cada pipeline tem CLI próprio + entry point main()
 ```
 
-### Self-hosted (Iceberg full)
+### Self-host: backend pluggable (AWS S3 Tables OR 100% OSS)
 
-Pra escrever no Iceberg precisa de:
-- AWS account com S3 Tables habilitado
-- `ICEBERG_WAREHOUSE` env apontando pro ARN do table bucket
-- Credentials (IAM role ou keys via `AWS_PROFILE`)
+O catalog é auto-detectado pela env `ICEBERG_WAREHOUSE`. Escolha um:
 
+#### a) AWS S3 Tables (default — managed)
 ```bash
-export AWS_PROFILE=meu-perfil
-export ICEBERG_WAREHOUSE=arn:aws:s3tables:us-east-1:<seu-account>:bucket/<seu-bucket>
+export ICEBERG_WAREHOUSE=arn:aws:s3tables:us-east-1:<account>:bucket/<name>
+export AWS_PROFILE=meu-perfil   # ou IAM role no Fargate
 lakebrasil run rais --no-fetch
+```
+
+#### b) 100% OSS local — MinIO + Nessie via Docker (zero AWS)
+```bash
+docker compose up -d            # sobe MinIO (porta 9000) + Nessie (19120)
+
+export ICEBERG_WAREHOUSE=s3://warehouse/
+export ICEBERG_REST_ENDPOINT=http://localhost:19120/iceberg/v1
+export S3_ENDPOINT_URL=http://localhost:9000
+export AWS_ACCESS_KEY_ID=minioadmin
+export AWS_SECRET_ACCESS_KEY=minioadmin
+export AWS_REGION=us-east-1
+
+lakebrasil run rais --no-fetch
+```
+Console MinIO: `http://localhost:9001` · Nessie: `http://localhost:19120`
+
+#### c) Vanilla REST catalog (Lakekeeper, Tabular, qualquer Iceberg REST)
+```bash
+export ICEBERG_WAREHOUSE=s3://meu-bucket/warehouse/
+export ICEBERG_REST_ENDPOINT=https://meu-catalog.example.com/iceberg
+export ICEBERG_REST_TOKEN=<bearer-token>   # opcional
+lakebrasil run rais --no-fetch
+```
+
+#### d) Zero-infra dev — SQLite + filesystem local
+```bash
+export ICEBERG_WAREHOUSE=local:///tmp/lakebrasil-warehouse
+lakebrasil run anp_precos --dry-run --no-fetch
 ```
 
 Cada pipeline tem docstring com fonte/cobertura/caveats —
