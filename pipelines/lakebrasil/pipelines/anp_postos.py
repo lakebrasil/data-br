@@ -26,7 +26,6 @@ import io
 import sys
 from typing import Iterator
 
-import boto3
 import dlt
 
 from lakebrasil.common.args import add_common_args
@@ -35,7 +34,7 @@ from lakebrasil.common.incremental import loaded_snapshots
 
 from lakebrasil.common.enrich import resolve_ibge, municipios_count
 from lakebrasil.common.fetch import ensure_fetched
-from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys
+from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "anp/raw/"
@@ -84,7 +83,7 @@ def anp_postos() -> Iterator[dict]:
     src_key = _pick_source_key()
     if src_key is None:
         return
-    head = boto3.client("s3").head_object(Bucket=RAW_BUCKET, Key=src_key)
+    head = s3_client().head_object(Bucket=RAW_BUCKET, Key=src_key)
     snapshot = head["LastModified"].date().isoformat()
 
     if snapshot in loaded_snapshots("anp_postos"):

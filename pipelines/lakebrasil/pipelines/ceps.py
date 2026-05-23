@@ -20,10 +20,10 @@ import io
 import os
 import sys
 
-import boto3
 import pyarrow as pa
 import pyarrow.csv as pa_csv
 
+from lakebrasil.common.s3 import s3_client
 from lakebrasil.loaders.iceberg import catalog
 from lakebrasil.common.args import add_common_args
 
@@ -54,7 +54,7 @@ TYPES: dict[str, pa.DataType] = {
 
 
 def _read_csv() -> pa.Table:
-    raw = boto3.client("s3").get_object(Bucket=RAW_BUCKET, Key=S3_KEY)["Body"].read()
+    raw = s3_client().get_object(Bucket=RAW_BUCKET, Key=S3_KEY)["Body"].read()
     convert = pa_csv.ConvertOptions(
         column_types=TYPES,
         strings_can_be_null=True,

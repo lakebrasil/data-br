@@ -14,14 +14,13 @@ import io
 import sys
 from typing import Iterator
 
-import boto3
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.csv import parse_int_or_none, parse_money_br, read_csv_records
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_snapshots
-from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes
+from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_KEY = "emendas/raw/EmendasParlamentares.csv"
@@ -66,7 +65,7 @@ NUMERIC = {
 
 @dlt.resource(name="emendas_parlamentares", primary_key=["codigo_emenda"], write_disposition="append")
 def emendas() -> Iterator[dict]:
-    head = boto3.client("s3").head_object(Bucket=RAW_BUCKET, Key=S3_KEY)
+    head = s3_client().head_object(Bucket=RAW_BUCKET, Key=S3_KEY)
     snapshot = head["LastModified"].date().isoformat()
     if snapshot in loaded_snapshots("emendas_parlamentares"):
         print(f"  emendas: snapshot {snapshot} já carregado — skip")

@@ -45,12 +45,11 @@ import zipfile
 from collections import Counter
 from typing import Iterator
 
-import boto3
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys
+from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 # Importa do cnpj.py os índices RFB→IBGE + constantes
@@ -83,7 +82,7 @@ def _build_porte_index(estab_keys_count: int) -> dict[str, str]:
     cost dominante (8 bytes × 55M ~ 440 MB pra strings).
     """
     print(f"PASS 1: building porte index dos Empresas zips...", file=sys.stderr)
-    s3 = boto3.client("s3")
+    s3 = s3_client()
     keys = sorted(list_keys(S3_PREFIX))
     empresas_keys = [k for k in keys
                      if EMPRESAS_FILE_RE.match(k.rsplit("/", 1)[-1])]
@@ -129,7 +128,7 @@ def _aggregate_estab_with_porte(
     (sentinel — vira string vazia no Iceberg). Ratio típico de match
     deve ser ~100% pois ambos vêm do mesmo snapshot RFB.
     """
-    s3 = boto3.client("s3")
+    s3 = s3_client()
     name = s3_key.rsplit("/", 1)[-1]
     body = s3.get_object(Bucket=RAW_BUCKET, Key=s3_key)["Body"].read()
     rows_seen = 0

@@ -42,13 +42,12 @@ from collections import Counter
 from pathlib import Path
 from typing import Iterator
 
-import boto3
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_snapshots
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys
+from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "cnpj/raw/"
@@ -107,7 +106,7 @@ def _build_rf_to_ibge(snapshot: str) -> dict[str, int]:
             slug_to_ibge[(uf.upper(), slug)] = int(ibge)
 
     # 2. Baixa Municipios.zip do CNPJ snapshot (escolhe primeiro que existir).
-    s3 = boto3.client("s3")
+    s3 = s3_client()
     keys = set(list_keys(S3_PREFIX))
     muni_key = None
     for fname in MUNI_FILENAMES:
@@ -185,7 +184,7 @@ def _aggregate_estab_zip_into(
     distintas no total (todos zips), ~400 MB pico. Fargate task tem
     16 GB, comporta.
     """
-    s3 = boto3.client("s3")
+    s3 = s3_client()
     name = s3_key.rsplit("/", 1)[-1]
     print(f"  CNPJ {name}: download S3 → memória", file=sys.stderr)
     body = s3.get_object(Bucket=RAW_BUCKET, Key=s3_key)["Body"].read()

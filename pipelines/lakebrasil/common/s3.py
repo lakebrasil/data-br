@@ -21,6 +21,7 @@ from typing import Iterator
 
 import boto3
 import duckdb
+from botocore.config import Config
 
 RAW_BUCKET = os.environ.get("DATA_BR_RAW_BUCKET", "data-br-raw")
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
@@ -30,6 +31,10 @@ AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 # S3 Files (NFS) ou mountpoint-s3 (FUSE).
 MOUNT_ROOT = os.environ.get("DATA_BR_RAW_MOUNT")
 
+# S3-compatível alternativo (MinIO local, R2, Wasabi, etc).
+# Quando set, boto3 client aponta pra esse endpoint + path-style addressing.
+S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL")
+
 
 def _is_mounted() -> bool:
     return MOUNT_ROOT is not None and Path(MOUNT_ROOT).is_dir()
@@ -37,7 +42,27 @@ def _is_mounted() -> bool:
 
 @lru_cache(maxsize=1)
 def s3_client():
-    return boto3.client("s3")
+    """Cached boto3 S3 client. Single chokepoint pra raw layer access.
+
+    Auto-detecta MinIO / S3-compat via `S3_ENDPOINT_URL`. AWS default
+    quando não setado (usa credential chain padrão — env, ~/.aws,
+    IAM role, instance profile).
+    """
+    kwargs: dict = {"region_name": AWS_REGION}
+    if S3_ENDPOINT_URL:
+        kwargs["endpoint_url"] = S3_ENDPOINT_URL
+        # MinIO e a maioria dos S3-compat exige path-style (sem
+        # virtual-host subdomains tipo `bucket.endpoint`).
+        kwargs["config"] = Config(s3={"addressing_style": "path"})
+        # Quando MinIO, credenciais explícitas vêm via AWS_* envs (já
+        # consumidas pela credential chain do boto3); reforço aqui pra
+        # ambientes onde o usuário só setou S3_ENDPOINT_URL sem rodar
+        # `aws configure` antes.
+        if "AWS_ACCESS_KEY_ID" in os.environ:
+            kwargs["aws_access_key_id"] = os.environ["AWS_ACCESS_KEY_ID"]
+            kwargs["aws_secret_access_key"] = os.environ.get(
+                "AWS_SECRET_ACCESS_KEY", "")
+    return boto3.client("s3", **kwargs)
 
 
 def s3_uri(key: str) -> str:

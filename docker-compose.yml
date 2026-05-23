@@ -51,8 +51,10 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 minioadmin minioadmin;
       mc mb --ignore-existing local/warehouse;
+      mc mb --ignore-existing local/data-br-raw;
       mc anonymous set public local/warehouse;
-      echo 'minio bucket warehouse ready';
+      mc anonymous set public local/data-br-raw;
+      echo 'minio buckets ready: warehouse, data-br-raw';
       "
 
   nessie:

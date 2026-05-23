@@ -35,14 +35,13 @@ import sys
 import time
 from typing import Iterator
 
-import boto3
 import dlt
 import openpyxl
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.enrich import municipios_count, resolve_ibge
 from lakebrasil.common.fetch import ensure_fetched
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys
+from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "denatran/raw/"
@@ -78,7 +77,7 @@ def _iter_xlsx(s3_key: str, ano: int, mes: int) -> Iterator[dict]:
     """Stream o xlsx (single sheet wide) → unpivot to long rows."""
     name = s3_key.rsplit("/", 1)[-1]
     print(f"  FROTA {name}: download S3", file=sys.stderr)
-    s3 = boto3.client("s3")
+    s3 = s3_client()
     body = s3.get_object(Bucket=RAW_BUCKET, Key=s3_key)["Body"].read()
     wb = openpyxl.load_workbook(io.BytesIO(body), read_only=True, data_only=True)
     sheet_name = wb.sheetnames[0]

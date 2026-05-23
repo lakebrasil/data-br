@@ -13,17 +13,13 @@ Layout S3:
 from __future__ import annotations
 
 import hashlib
-import io
 import json
-import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from functools import lru_cache
 from typing import Optional
 
-import boto3
+from lakebrasil.common.s3 import RAW_BUCKET, s3_client
 
-RAW_BUCKET = os.environ.get("DATA_BR_RAW_BUCKET", "data-br-raw")
 MANIFEST_PREFIX = "_manifest"
 
 
@@ -36,12 +32,6 @@ class FetchResult:
     url: str
     skipped: bool = False
     error: Optional[str] = None
-
-
-@lru_cache(maxsize=1)
-def s3_client():
-    """Cached boto3 S3 client. Profile via env (AWS_PROFILE) or instance role."""
-    return boto3.client("s3")
 
 
 def s3_key_for_target(target) -> str:

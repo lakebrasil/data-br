@@ -24,7 +24,6 @@ import time
 from pathlib import Path
 from typing import Iterator
 
-import boto3
 import dlt
 import duckdb
 
@@ -32,7 +31,7 @@ from lakebrasil.common.args import add_common_args
 from lakebrasil.common.enrich import siafi_to_ibge_map
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_pairs
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys, local_path
+from lakebrasil.common.s3 import RAW_BUCKET, list_keys, local_path, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 PROGRAMS = {
@@ -91,7 +90,7 @@ def _aggregate_month(programa: str, s3_key: str, mes_yyyymm: str,
             zip_to_read = mount_zip
         else:
             tmp_zip = Path("/tmp") / Path(s3_key).name
-            boto3.client("s3").download_file(RAW_BUCKET, s3_key, str(tmp_zip))
+            s3_client().download_file(RAW_BUCKET, s3_key, str(tmp_zip))
             zip_to_read = tmp_zip
 
         with zipfile.ZipFile(zip_to_read) as zf:

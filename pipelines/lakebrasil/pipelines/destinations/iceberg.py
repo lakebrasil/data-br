@@ -15,8 +15,9 @@ Backend é auto-detectado em `lakebrasil.loaders.iceberg.catalog()`
 
 Env vars adicionais aqui:
     DATA_BR_NAMESPACE   override do namespace (default 'data_br')
-
-A tabela Iceberg deve existir antes do append. Schema mismatch → raise.
+    DATA_BR_AUTOCREATE  '1' (default) cria namespace + tabela do schema
+                        do primeiro batch quando não existem. '0' exige
+                        DDL prévio (AWS S3 Tables CDK stack).
 """
 from __future__ import annotations
 
@@ -24,10 +25,58 @@ import os
 
 import dlt
 import pyarrow as pa
+from pyiceberg.exceptions import NoSuchNamespaceError, NoSuchTableError
 
 from lakebrasil.loaders.iceberg import catalog as _shared_catalog
 
 NAMESPACE = os.environ.get("DATA_BR_NAMESPACE", "data_br")
+AUTOCREATE = os.environ.get("DATA_BR_AUTOCREATE", "1") == "1"
+
+
+def _ensure_table(table_name: str, arrow_table: pa.Table):
+    """Load existing table or create from the arrow schema.
+
+    Auto-create é tudo-ou-nada: se a tabela existe, schema validation
+    rola normalmente no `iceberg()` (reorder + cast). Se não existe e
+    AUTOCREATE=1, cria com schema EXATAMENTE igual ao do primeiro batch.
+    """
+    cat = _shared_catalog()
+    try:
+        return cat.load_table(f"{NAMESPACE}.{table_name}")
+    except NoSuchTableError:
+        if not AUTOCREATE:
+            raise
+    except NoSuchNamespaceError:
+        if not AUTOCREATE:
+            raise
+        cat.create_namespace(NAMESPACE)
+
+    # Bootstrap namespace just in case (idempotent if already exists).
+    try:
+        cat.create_namespace(NAMESPACE)
+    except Exception:
+        pass
+
+    from pyiceberg.io.pyarrow import pyarrow_to_schema
+    from pyiceberg.table.name_mapping import MappedField, NameMapping
+
+    # Build NameMapping com IDs sequenciais (1..N) a partir dos top-level
+    # field names. pyarrow_to_schema usa esse mapping pra assinar field-ids
+    # ao schema iceberg (arrow não carrega field-ids).
+    name_mapping = NameMapping([
+        MappedField(field_id=i + 1, names=[f.name])
+        for i, f in enumerate(arrow_table.schema)
+    ])
+    iceberg_schema = pyarrow_to_schema(arrow_table.schema, name_mapping=name_mapping)
+    # CRITICAL: dlt-written parquets não carregam Iceberg field-ids embedded.
+    # Sem `schema.name-mapping.default` o append falha com:
+    #   "Parquet file does not have field-ids and the Iceberg table does
+    #    not have 'schema.name-mapping.default' defined"
+    return cat.create_table(
+        f"{NAMESPACE}.{table_name}",
+        schema=iceberg_schema,
+        properties={"schema.name-mapping.default": name_mapping.model_dump_json()},
+    )
 
 
 @dlt.destination(
@@ -64,7 +113,7 @@ def iceberg(items, table) -> None:
     else:
         raise TypeError(f"unexpected items type {type(items).__name__}")
 
-    iceberg_table = _shared_catalog().load_table(f"{NAMESPACE}.{table_name}")
+    iceberg_table = _ensure_table(table_name, arrow)
     target_schema = iceberg_table.schema().as_arrow()
 
     # Reorder + add missing nullable columns

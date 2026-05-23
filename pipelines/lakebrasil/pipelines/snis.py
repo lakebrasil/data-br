@@ -50,14 +50,13 @@ import time
 import zipfile
 from typing import Iterator
 
-import boto3
 import dlt
 import xlrd
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys
+from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "snis/raw/"
@@ -242,7 +241,7 @@ def main() -> int:
         write_disposition="append",
     )
     def snis_indicadores() -> Iterator[dict]:
-        s3 = boto3.client("s3")
+        s3 = s3_client()
         keys = sorted(list_keys(S3_PREFIX))
         anos_filter = set(args.ano) if args.ano else None
         for key in keys:
