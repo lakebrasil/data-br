@@ -1,8 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <!-- lakebrasil favicon — simplified 4-layer icon optimized for tiny sizes -->
+  <!-- lakebrasil favicon — same iceberg shape, simplified for 32px -->
   <title>lakebrasil</title>
-  <rect x="2" y="4"  width="28" height="5" rx="1" fill="#0d9963"/>
-  <rect x="4" y="11" width="24" height="5" rx="1" fill="#f4c542"/>
-  <rect x="6" y="18" width="20" height="5" rx="1" fill="#3b9ed4"/>
-  <rect x="8" y="25" width="16" height="5" rx="1" fill="#143962"/>
+  <defs>
+    <clipPath id="ic">
+      <path d="M 16 3 L 28 28 L 4 28 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#ic)">
+    <rect x="0" y="3"  width="32" height="7" fill="#0a8754"/>
+    <rect x="0" y="10" width="32" height="6" fill="#e8b03a"/>
+    <rect x="0" y="16" width="32" height="6" fill="#2d7eb0"/>
+    <rect x="0" y="22" width="32" height="6" fill="#143962"/>
+  </g>
 </svg>

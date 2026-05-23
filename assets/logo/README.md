@@ -17,13 +17,12 @@ same as the engine).
 
 ## Concept
 
-4 stacked horizontal layers (decreasing width top→bottom) form a
-top-heavy wedge — references both **data-lake stratification** (each
-layer = a table snapshot in the lakehouse) and an **iceberg silhouette**
-(nod to Apache Iceberg, the underlying lakehouse format).
+A unified iceberg silhouette sliced into 4 horizontal data strata —
+references both **lake** (waterbody / data lake) and **Apache Iceberg**
+(the underlying lakehouse format that backs the engine).
 
-Colors are the Brazilian palette — deep forest green (Amazon), warm
-yellow (sun/cerrado), river blue, iceberg navy — but ordered as data
+Colors are the Brazilian palette — Amazon green at the peak, sun
+yellow, river blue, iceberg navy at the base — ordered as geological
 strata rather than the flag, so it's recognizable without being
 flag-spam.
 

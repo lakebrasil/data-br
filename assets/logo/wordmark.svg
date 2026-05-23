@@ -1,31 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 128" width="480" height="128">
-  <!-- lakebrasil wordmark: icon + text horizontal layout -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" width="520" height="128">
   <title>lakebrasil</title>
   <defs>
-    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0a8754"/><stop offset="100%" stop-color="#0d9963"/>
+    <linearGradient id="g-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16c47e"/><stop offset="100%" stop-color="#0a8754"/>
     </linearGradient>
-    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#f4c542"/><stop offset="100%" stop-color="#e8b03a"/>
+    <linearGradient id="g-yellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd566"/><stop offset="100%" stop-color="#e8b03a"/>
     </linearGradient>
-    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3b9ed4"/><stop offset="100%" stop-color="#2d7eb0"/>
+    <linearGradient id="g-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5cb8e8"/><stop offset="100%" stop-color="#2d7eb0"/>
     </linearGradient>
-    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1f4e8c"/><stop offset="100%" stop-color="#143962"/>
+    <linearGradient id="g-navy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c66a8"/><stop offset="100%" stop-color="#143962"/>
     </linearGradient>
+    <clipPath id="ice-wm">
+      <path d="M 56 16 L 100 104 L 12 104 Z"/>
+    </clipPath>
   </defs>
 
-  <!-- Icon (left, scaled to 96x96 at x=16) -->
-  <g transform="translate(16, 16)">
-    <rect x="0"  y="4"  width="96" height="16" rx="2" fill="url(#g1)"/>
-    <rect x="8"  y="26" width="80" height="16" rx="2" fill="url(#g2)"/>
-    <rect x="16" y="48" width="64" height="16" rx="2" fill="url(#g3)"/>
-    <rect x="24" y="70" width="48" height="16" rx="2" fill="url(#g4)"/>
+  <!-- Icon (left) -->
+  <g clip-path="url(#ice-wm)">
+    <rect x="0" y="16"  width="120" height="22" fill="url(#g-green)"/>
+    <rect x="0" y="38"  width="120" height="22" fill="url(#g-yellow)"/>
+    <rect x="0" y="60"  width="120" height="22" fill="url(#g-blue)"/>
+    <rect x="0" y="82"  width="120" height="22" fill="url(#g-navy)"/>
+  </g>
+  <g clip-path="url(#ice-wm)" stroke="#ffffff" stroke-width="1" stroke-opacity="0.85">
+    <line x1="0" y1="38" x2="120" y2="38"/>
+    <line x1="0" y1="60" x2="120" y2="60"/>
+    <line x1="0" y1="82" x2="120" y2="82"/>
   </g>
 
   <!-- Wordmark (right) -->
-  <text x="136" y="82"
+  <text x="138" y="82"
         font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif"
         font-size="64" font-weight="700"
         fill="#143962" letter-spacing="-2">

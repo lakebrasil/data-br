@@ -1,32 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 128" width="480" height="128">
-  <!-- lakebrasil wordmark — dark mode variant (light text on dark bg) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 128" width="520" height="128">
   <title>lakebrasil (dark)</title>
   <defs>
-    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#13ad6e"/><stop offset="100%" stop-color="#16c47e"/>
+    <linearGradient id="g-green-d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1ad88a"/><stop offset="100%" stop-color="#16c47e"/>
     </linearGradient>
-    <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g-yellow-d" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#ffd566"/><stop offset="100%" stop-color="#f4c542"/>
     </linearGradient>
-    <linearGradient id="g3" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#5cb8e8"/><stop offset="100%" stop-color="#3b9ed4"/>
+    <linearGradient id="g-blue-d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#6cc4f0"/><stop offset="100%" stop-color="#3b9ed4"/>
     </linearGradient>
-    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4b7fc4"/><stop offset="100%" stop-color="#2d6298"/>
+    <linearGradient id="g-navy-d" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4b85cc"/><stop offset="100%" stop-color="#2d6298"/>
     </linearGradient>
+    <clipPath id="ice-wm-d">
+      <path d="M 56 16 L 100 104 L 12 104 Z"/>
+    </clipPath>
   </defs>
 
-  <g transform="translate(16, 16)">
-    <rect x="0"  y="4"  width="96" height="16" rx="2" fill="url(#g1)"/>
-    <rect x="8"  y="26" width="80" height="16" rx="2" fill="url(#g2)"/>
-    <rect x="16" y="48" width="64" height="16" rx="2" fill="url(#g3)"/>
-    <rect x="24" y="70" width="48" height="16" rx="2" fill="url(#g4)"/>
+  <g clip-path="url(#ice-wm-d)">
+    <rect x="0" y="16"  width="120" height="22" fill="url(#g-green-d)"/>
+    <rect x="0" y="38"  width="120" height="22" fill="url(#g-yellow-d)"/>
+    <rect x="0" y="60"  width="120" height="22" fill="url(#g-blue-d)"/>
+    <rect x="0" y="82"  width="120" height="22" fill="url(#g-navy-d)"/>
+  </g>
+  <g clip-path="url(#ice-wm-d)" stroke="#0d1117" stroke-width="1" stroke-opacity="0.6">
+    <line x1="0" y1="38" x2="120" y2="38"/>
+    <line x1="0" y1="60" x2="120" y2="60"/>
+    <line x1="0" y1="82" x2="120" y2="82"/>
   </g>
 
-  <text x="136" y="82"
+  <text x="138" y="82"
         font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif"
         font-size="64" font-weight="700"
         fill="#f5f7fa" letter-spacing="-2">
-    lake<tspan fill="#16c47e">brasil</tspan>
+    lake<tspan fill="#1ad88a">brasil</tspan>
   </text>
 </svg>
