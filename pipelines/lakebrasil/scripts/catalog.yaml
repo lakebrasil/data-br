@@ -1,0 +1,281 @@
+# data-br fetch catalog
+#
+# Each source has:
+#   fetcher:    one of [http, govbr, transparencia, ckan, sidra, bcb_sgs, ftp, webdav]
+#   url/pattern: literal URL OR template with {placeholders}
+#   params:     dict of placeholder → values (list, range, or generator spec)
+#   schedule:   when this source should re-fetch (daily|weekly|monthly|yearly|once)
+#   license:    short license tag for provenance ledger
+#   out:        sub-path under raw bucket (e.g. "bpc/raw/")
+#   tier:       1|2|3 — used by --tier filter
+#
+# Generators:
+#   monthly_range(start, end): yields YYYYMM strings inclusive of both ends
+#                              start/end can be "today" / "today-N" (months)
+#   yearly_range(start, end):  yields YYYY strings
+#   list:                      literal list of values
+#   ufs:                       all 27 UFs (AC, AL, ..., TO)
+
+defaults:
+  retries: 3
+  timeout_s: 300
+  user_agent: "data-br-fetch/0.1 (+https://data-br.dev)"
+
+sources:
+  # ── Tier 1 — political/fiscal ───────────────────────────────────────
+  tse_consulta_cand:
+    fetcher: http
+    pattern: "https://cdn.tse.jus.br/estatistica/sead/odsele/consulta_cand/consulta_cand_{ano}.zip"
+    params:
+      ano: { yearly_range: [2008, 2024] }
+    schedule: yearly
+    license: CC0
+    out: "tse/raw/"
+    tier: 1
+
+  tse_votacao_munzona:
+    fetcher: http
+    pattern: "https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona/votacao_candidato_munzona_{ano}.zip"
+    params:
+      ano: { yearly_range: [2008, 2024] }
+    schedule: yearly
+    license: CC0
+    out: "tse/raw/"
+    tier: 1
+
+  camara_proposicoes:
+    fetcher: http
+    pattern: "https://dadosabertos.camara.leg.br/arquivos/proposicoes/json/proposicoes-{ano}.json"
+    params:
+      ano: { yearly_range: [2015, today_year] }
+    schedule: monthly
+    license: LAI
+    out: "camara/raw/"
+    tier: 1
+
+  camara_votacoes:
+    fetcher: http
+    pattern: "https://dadosabertos.camara.leg.br/arquivos/votacoes/json/votacoes-{ano}.json"
+    params:
+      ano: { yearly_range: [2015, today_year] }
+    schedule: monthly
+    license: LAI
+    out: "camara/raw/"
+    tier: 1
+
+  camara_votos:
+    fetcher: http
+    pattern: "https://dadosabertos.camara.leg.br/arquivos/votacoesVotos/json/votacoesVotos-{ano}.json"
+    params:
+      ano: { yearly_range: [2015, today_year] }
+    schedule: monthly
+    license: LAI
+    out: "camara/raw/"
+    tier: 1
+
+  emendas_parlamentares:
+    fetcher: transparencia
+    url: "https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares"
+    schedule: weekly
+    license: CC0
+    out: "emendas/raw/"
+    tier: 1
+
+  bpc:
+    fetcher: transparencia
+    pattern: "https://portaldatransparencia.gov.br/download-de-dados/bpc/{ym}"
+    params:
+      ym: { monthly_range: ["2020-01", "today"] }
+    schedule: monthly
+    license: CC0
+    out: "bpc/raw/"
+    tier: 1
+
+  bolsa_familia:
+    fetcher: transparencia
+    pattern: "https://portaldatransparencia.gov.br/download-de-dados/novo-bolsa-familia/{ym}"
+    fallback_pattern: "https://portaldatransparencia.gov.br/download-de-dados/auxilio-brasil/{ym}"
+    params:
+      ym: { monthly_range: ["2020-01", "today"] }
+    schedule: monthly
+    license: CC0
+    out: "bolsa_familia/raw/"
+    tier: 1
+
+  orcamento_execucao:
+    fetcher: transparencia
+    pattern: "https://portaldatransparencia.gov.br/download-de-dados/despesas-execucao/{ym}"
+    params:
+      ym: { monthly_range: ["2020-01", "today"] }
+    schedule: monthly
+    license: CC0
+    out: "orcamento/raw/"
+    tier: 1
+
+  ceis:
+    fetcher: transparencia
+    url: "https://portaldatransparencia.gov.br/download-de-dados/ceis"
+    schedule: daily
+    license: CC0
+    out: "ceis/raw/"
+    tier: 1
+
+  cnep:
+    fetcher: transparencia
+    url: "https://portaldatransparencia.gov.br/download-de-dados/cnep"
+    schedule: daily
+    license: CC0
+    out: "cnep/raw/"
+    tier: 1
+
+  # ── BACEN macro series (BCB SGS) ───────────────────────────────────
+  bacen_ipca_mensal:
+    fetcher: bcb_sgs
+    series: 433
+    schedule: monthly
+    license: open
+    out: "bacen/raw/"
+    tier: 1
+
+  bacen_selic_diaria:
+    fetcher: bcb_sgs
+    series: 11
+    schedule: daily
+    license: open
+    out: "bacen/raw/"
+    tier: 1
+
+  bacen_cambio_dolar:
+    fetcher: bcb_sgs
+    series: 1
+    schedule: daily
+    license: open
+    out: "bacen/raw/"
+    tier: 1
+
+  # ── gov.br (F5 BIG-IP — needs urllib bypass) ────────────────────────
+  anp_postos:
+    fetcher: govbr
+    url: "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/arquivos/arquivos-dados-cadastrais-dos-revendedores-varejistas-de-combustiveis-automotivos/dados-cadastrais-revendedores-varejistas-combustiveis-automoveis.csv/@@download/file"
+    out_filename: "postos_revendedores.csv"
+    schedule: weekly
+    license: "CC BY 4.0"
+    out: "anp/raw/"
+    tier: 3
+
+  # ── Comex Stat (per year) ───────────────────────────────────────────
+  comex_exportacao_mun:
+    fetcher: http
+    pattern: "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/mun/EXP_{ano}_MUN.csv"
+    params:
+      ano: { yearly_range: [2020, today_year] }
+    schedule: monthly
+    license: CC0
+    out: "comex/raw/"
+    tier: 1
+
+  comex_importacao_mun:
+    fetcher: http
+    pattern: "https://balanca.economia.gov.br/balanca/bd/comexstat-bd/mun/IMP_{ano}_MUN.csv"
+    params:
+      ano: { yearly_range: [2020, today_year] }
+    schedule: monthly
+    license: CC0
+    out: "comex/raw/"
+    tier: 1
+
+  # ── CNPJ Receita Federal (WebDAV — token via DATA_BR_WEBDAV_TOKEN) ──
+  # 3 fact tables, cada uma sharded em 10 zips. Atualize `ym` quando a
+  # Receita publicar novo snapshot mensal (geralmente até dia 15).
+  cnpj_empresas:
+    fetcher: webdav
+    pattern: "https://arquivos.receitafederal.gov.br/public.php/webdav/Dados/Cadastros/CNPJ/{ym}/Empresas{shard}.zip"
+    params:
+      ym:    { list: ["2026-04"] }
+      shard: { list: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+    schedule: monthly
+    license: "CC0/LAI"
+    out: "cnpj/raw/"
+    tier: 1
+
+  cnpj_estabelecimentos:
+    fetcher: webdav
+    pattern: "https://arquivos.receitafederal.gov.br/public.php/webdav/Dados/Cadastros/CNPJ/{ym}/Estabelecimentos{shard}.zip"
+    params:
+      ym:    { list: ["2026-04"] }
+      shard: { list: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+    schedule: monthly
+    license: "CC0/LAI"
+    out: "cnpj/raw/"
+    tier: 1
+
+  cnpj_socios:
+    fetcher: webdav
+    pattern: "https://arquivos.receitafederal.gov.br/public.php/webdav/Dados/Cadastros/CNPJ/{ym}/Socios{shard}.zip"
+    params:
+      ym:    { list: ["2026-04"] }
+      shard: { list: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+    schedule: monthly
+    license: "CC0/LAI"
+    out: "cnpj/raw/"
+    tier: 1
+
+  # Lookup tables — pequenas (≤ 300 MB combined), 1 zip por tabela.
+  cnpj_lookup_tables:
+    fetcher: webdav
+    pattern: "https://arquivos.receitafederal.gov.br/public.php/webdav/Dados/Cadastros/CNPJ/{ym}/{file}.zip"
+    params:
+      ym:   { list: ["2026-04"] }
+      file: { list: ["Cnaes", "Motivos", "Municipios", "Naturezas",
+                     "Paises", "Qualificacoes", "Simples"] }
+    schedule: monthly
+    license: "CC0/LAI"
+    out: "cnpj/raw/"
+    tier: 1
+
+  # ── SINISA — sucessor do SNIS (Ministério das Cidades, ref 2024+) ───
+  # Bulk via gov.br (F5 antibot → urllib bypass). 5 módulos.
+  sinisa_agua:
+    fetcher: govbr
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/sinisa/arquivos/SINISA_Resultados_Ref20242.zip"
+    out_filename: "sinisa_agua_2024.zip"
+    schedule: yearly
+    license: LAI
+    out: "sinisa/raw/"
+    tier: 2
+
+  sinisa_esgoto:
+    fetcher: govbr
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/sinisa/resultados-sinisa/SINISA_ESGOTO_Planilhas_2024.zip"
+    out_filename: "sinisa_esgoto_2024.zip"
+    schedule: yearly
+    license: LAI
+    out: "sinisa/raw/"
+    tier: 2
+
+  sinisa_residuos:
+    fetcher: govbr
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/sinisa/resultados-sinisa/SINISA_RESIDUOS_planilhas_2024.zip"
+    out_filename: "sinisa_residuos_2024.zip"
+    schedule: yearly
+    license: LAI
+    out: "sinisa/raw/"
+    tier: 2
+
+  sinisa_pluviais:
+    fetcher: govbr
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/sinisa/resultados-sinisa/SINISA_AGUASPLUVIAIS_Informacoes_Indicadores_2025.zip"
+    out_filename: "sinisa_pluviais_2024.zip"
+    schedule: yearly
+    license: LAI
+    out: "sinisa/raw/"
+    tier: 2
+
+  sinisa_gestao:
+    fetcher: govbr
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/sinisa/resultados-sinisa/copy_of_SINISA_GESTAO_MUNICIPAL_Informacoes_2024.xlsx"
+    out_filename: "sinisa_gestao_2024.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "sinisa/raw/"
+    tier: 2

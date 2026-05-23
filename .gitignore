@@ -1,0 +1,21 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+coverage/
+.vitest/
+
+# SDK runtime — local trial state cache
+.data-br/
+
+# Python pipelines
+__pycache__/
+*.pyc
+*.pyo
+*.duckdb
+.venv/
+.pytest_cache/
+*.egg-info/
+/pipelines/dist/

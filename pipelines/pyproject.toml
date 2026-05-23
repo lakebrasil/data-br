@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lakebrasil"
+version = "0.1.0"
+description = "Brazilian public data extraction engine — 35 pipelines from IBGE, MTE, MEC, INEP, INPE, ANS, BPC, Bolsa Família, RAIS, CNPJ, TSE, Câmara, BACEN, ANP, ANEEL, SNIS/SINISA, FNDE, STN, ..."
+readme = "../README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = [
+    "brazil", "brasil", "ibge", "municipios", "data-engineering",
+    "etl", "iceberg", "lakehouse", "open-data", "rais", "censo",
+    "snis", "bpc", "bolsa-familia", "tse", "datasus",
+]
+authors = [
+    { name = "lakebrasil contributors" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+# Core dependencies — minimal for HTTP-based pipelines (BACEN, ANP, TSE, etc.)
+dependencies = [
+    "dlt>=1.0",
+    "pyiceberg>=0.7",
+    "boto3>=1.34",
+    "pyarrow>=17",
+    "pandas>=2.1",
+    "duckdb>=1.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+# pipelines that read .xlsx files (sinisa, mec_ed_superior)
+excel = [
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+]
+# pipelines that extract .7z archives (rais_estab)
+archive = [
+    "py7zr>=0.21",
+]
+# pipelines that need spatial joins / shapefiles (inpe)
+geo = [
+    "geopandas>=1.0",
+    "shapely>=2.0",
+    "pyproj>=3.6",
+    "fiona>=1.10",
+]
+# everything required to run all 35 pipelines locally
+all = [
+    "lakebrasil[excel,archive,geo]",
+]
+# development extras
+dev = [
+    "pytest>=7",
+    "ruff>=0.5",
+    "build>=1",
+    "twine>=5",
+]
+
+[project.urls]
+Homepage = "https://github.com/lakebrasil/data-br"
+Documentation = "https://github.com/lakebrasil/data-br#readme"
+Repository = "https://github.com/lakebrasil/data-br"
+Issues = "https://github.com/lakebrasil/data-br/issues"
+
+[project.scripts]
+lakebrasil = "lakebrasil.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lakebrasil"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "lakebrasil/**/*.py",
+    "lakebrasil/scripts/catalog.yaml",
+    "../README.md",
+    "../LICENSE",
+]

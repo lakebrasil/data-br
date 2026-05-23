@@ -1,0 +1,76 @@
+name: Publish lakebrasil to PyPI
+
+# Publishes the lakebrasil pypi package on every GitHub Release tagged v*.
+# Uses PyPI Trusted Publishing (OIDC) — NO secrets needed.
+#
+# Setup (one-time):
+#   1. Push this workflow to main
+#   2. On pypi.org → Account settings → Publishing → "Add a new pending publisher":
+#        PyPI Project Name: lakebrasil
+#        Owner: lakebrasil
+#        Repository name: data-br
+#        Workflow name: publish.yml
+#        Environment name: pypi
+#   3. Create a GitHub Release (Releases → Draft new release → tag v0.1.0)
+#   4. This workflow runs automatically, build + upload, no token required
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # allow manual trigger for testing
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build deps
+        run: pip install build
+      - name: Build wheel + sdist
+        working-directory: ./pipelines
+        run: python -m build
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: pipelines/dist/
+
+  publish-testpypi:
+    name: Publish to TestPyPI (smoke test)
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/lakebrasil
+    permissions:
+      id-token: write   # OIDC trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/lakebrasil
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
