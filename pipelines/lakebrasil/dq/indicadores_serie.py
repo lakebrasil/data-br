@@ -1,6 +1,10 @@
 """DQ: data_br.indicadores_serie — fato genérica (SNIS, ANA, etc)."""
 from lakebrasil.dq.checks import (
-    row_count, null_rate, distinct_count, ibge_coverage, fk_to_municipios,
+    distinct_count,
+    fk_to_municipios,
+    ibge_coverage,
+    null_rate,
+    row_count,
 )
 
 CHECKS = [

@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import datetime as _dt
 import itertools
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 import yaml
 
@@ -39,12 +40,12 @@ class SourceSpec:
     license: str
     out: str
     tier: int
-    url: Optional[str] = None
-    pattern: Optional[str] = None
-    fallback_pattern: Optional[str] = None
-    out_filename: Optional[str] = None
-    series: Optional[int] = None
-    params: Optional[Dict[str, Any]] = None
+    url: str | None = None
+    pattern: str | None = None
+    fallback_pattern: str | None = None
+    out_filename: str | None = None
+    series: int | None = None
+    params: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -57,8 +58,8 @@ class FetchTarget:
     out_path: Path
     license: str
     tier: int
-    fallback_url: Optional[str] = None
-    extra: Optional[Dict[str, Any]] = None  # series id, ym, ano, etc.
+    fallback_url: str | None = None
+    extra: dict[str, Any] | None = None  # series id, ym, ano, etc.
 
 
 def _today_year() -> int:
@@ -77,7 +78,7 @@ def _parse_ym(s: str) -> _dt.date:
     return _dt.date(int(y), int(m), 1)
 
 
-def _expand_param(name: str, spec: Any) -> List[str]:
+def _expand_param(name: str, spec: Any) -> list[str]:
     """spec is one of: {yearly_range:[a,b]}, {monthly_range:[a,b]}, {list:[...]}, {ufs:true}."""
     if isinstance(spec, dict):
         if "yearly_range" in spec:
@@ -104,7 +105,7 @@ def _expand_param(name: str, spec: Any) -> List[str]:
     raise ValueError(f"unrecognised param spec for {name!r}: {spec!r}")
 
 
-def _filename_from_url(url: str, out_filename: Optional[str]) -> str:
+def _filename_from_url(url: str, out_filename: str | None) -> str:
     if out_filename:
         return out_filename
     # Strip querystring + take last path segment.
@@ -112,9 +113,9 @@ def _filename_from_url(url: str, out_filename: Optional[str]) -> str:
     return last or "index.html"
 
 
-def load_catalog(path: Path = CATALOG_PATH) -> Dict[str, SourceSpec]:
+def load_catalog(path: Path = CATALOG_PATH) -> dict[str, SourceSpec]:
     raw = yaml.safe_load(path.read_text())
-    sources: Dict[str, SourceSpec] = {}
+    sources: dict[str, SourceSpec] = {}
     for name, body in raw.get("sources", {}).items():
         sources[name] = SourceSpec(
             name=name,

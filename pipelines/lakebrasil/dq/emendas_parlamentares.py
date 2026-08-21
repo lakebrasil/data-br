@@ -1,5 +1,11 @@
 """DQ: data_br.emendas_parlamentares."""
-from lakebrasil.dq.checks import row_count, null_rate, value_range, dedup, fk_to_municipios
+from lakebrasil.dq.checks import (
+    dedup,
+    fk_to_municipios,
+    null_rate,
+    row_count,
+    value_range,
+)
 
 CHECKS = [
     row_count(min_rows=80_000),  # ~92K hoje

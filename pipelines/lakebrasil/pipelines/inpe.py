@@ -30,7 +30,7 @@ import tempfile
 import time
 import warnings
 import zipfile
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 

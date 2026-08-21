@@ -17,7 +17,6 @@ import sys
 import time
 from pathlib import Path
 
-from .catalog import CATALOG_PATH, expand_targets, load_catalog
 from lakebrasil.fetchers import REGISTRY
 from lakebrasil.fetchers.base import (
     FetchResult,
@@ -26,6 +25,8 @@ from lakebrasil.fetchers.base import (
     s3_key_for_target,
     s3_object_exists,
 )
+
+from .catalog import CATALOG_PATH, expand_targets, load_catalog
 
 RAW_ROOT = Path(__file__).resolve().parent.parent  # data-br-sources/
 

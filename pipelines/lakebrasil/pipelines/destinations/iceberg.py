@@ -25,7 +25,11 @@ import os
 
 import dlt
 import pyarrow as pa
-from pyiceberg.exceptions import NoSuchNamespaceError, NoSuchTableError
+from pyiceberg.exceptions import (
+    NamespaceAlreadyExistsError,
+    NoSuchNamespaceError,
+    NoSuchTableError,
+)
 
 from lakebrasil.loaders.iceberg import catalog as _shared_catalog
 
@@ -51,10 +55,12 @@ def _ensure_table(table_name: str, arrow_table: pa.Table):
             raise
         cat.create_namespace(NAMESPACE)
 
-    # Bootstrap namespace just in case (idempotent if already exists).
+    # Bootstrap namespace just in case (idempotent if already exists) — only
+    # swallow the "already there" case, not e.g. a permission/network error
+    # that would otherwise surface as a much more confusing failure later.
     try:
         cat.create_namespace(NAMESPACE)
-    except Exception:
+    except NamespaceAlreadyExistsError:
         pass
 
     from pyiceberg.io.pyarrow import pyarrow_to_schema

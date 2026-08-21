@@ -54,14 +54,14 @@ import sys
 import time
 import zipfile
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
-from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys
+from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "inep/raw/"

@@ -48,7 +48,7 @@ import re
 import sys
 import time
 import zipfile
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 import xlrd

@@ -12,7 +12,8 @@ gated); `'warn'` loga mas passa; `'info'` puro registro.
 """
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -64,7 +65,7 @@ def freshness(max_age_days: int = 7, severity: str = "warn") -> CheckFn:
                            expected=f"<= {max_age_days}d old",
                            message="no snapshots")
         # snap.timestamp_ms is millis since epoch
-        age_days = (dt.datetime.now(dt.timezone.utc).timestamp() * 1000
+        age_days = (dt.datetime.now(dt.UTC).timestamp() * 1000
                     - snap.timestamp_ms) / 86_400_000
         ok = age_days <= max_age_days
         return _result("freshness", severity=severity,

@@ -1,5 +1,5 @@
 """DQ: data_br.frota_municipio — DENATRAN frota."""
-from lakebrasil.dq.checks import row_count, null_rate, ibge_coverage, fk_to_municipios
+from lakebrasil.dq.checks import fk_to_municipios, ibge_coverage, null_rate, row_count
 
 CHECKS = [
     row_count(min_rows=100_000),

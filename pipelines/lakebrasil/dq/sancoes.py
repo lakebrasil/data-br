@@ -1,5 +1,5 @@
 """DQ: data_br.sancoes — CEIS + CNEP do Portal da Transparência."""
-from lakebrasil.dq.checks import row_count, null_rate, dedup, distinct_count
+from lakebrasil.dq.checks import dedup, distinct_count, null_rate, row_count
 
 CHECKS = [
     row_count(min_rows=20_000),  # CEIS ~22K + CNEP ~1.6K

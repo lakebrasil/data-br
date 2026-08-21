@@ -34,15 +34,15 @@ import io
 import re
 import sys
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
-from lakebrasil.loaders.iceberg import catalog
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.common.s3 import get_object_bytes, list_keys
+from lakebrasil.loaders.iceberg import catalog
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "stn/raw/"
@@ -148,7 +148,7 @@ def _iter_csv(s3_key: str, indicador_id: str,
 
 def _build_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    p.add_argument("--indicador", choices=sorted(set(v[0] for v in INDICADORES.values())),
+    p.add_argument("--indicador", choices=sorted({v[0] for v in INDICADORES.values()}),
                    help="Carrega só um indicador (debug). Default: todos.")
     add_common_args(p, table_default="indicadores_serie")
     return p.parse_args()

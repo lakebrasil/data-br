@@ -38,7 +38,7 @@ import sys
 import time
 import unicodedata
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 

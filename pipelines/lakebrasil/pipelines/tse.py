@@ -23,7 +23,7 @@ import io
 import re
 import sys
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -61,8 +61,9 @@ def _build_tse_to_ibge() -> dict[str, int]:
 def _years_already_loaded() -> set[int]:
     """Anos já materializados em `data_br.eleicoes_municipais`. Pipeline
     pula esses → idempotência. Empty se a tabela não existe ainda."""
-    from lakebrasil.loaders.iceberg import catalog
     from pyiceberg.exceptions import NoSuchTableError
+
+    from lakebrasil.loaders.iceberg import catalog
     try:
         t = catalog().load_table("data_br.eleicoes_municipais")
     except NoSuchTableError:

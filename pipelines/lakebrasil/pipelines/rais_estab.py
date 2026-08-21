@@ -36,10 +36,10 @@ import io
 import os
 import re
 import sys
-import time
 import tempfile
+import time
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 import py7zr

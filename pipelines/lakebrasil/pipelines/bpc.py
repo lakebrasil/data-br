@@ -29,13 +29,13 @@ import sys
 import time
 import zipfile
 from collections import defaultdict
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterator
 
 import dlt
 
 from lakebrasil.common.args import add_common_args
-from lakebrasil.common.enrich import siafi_to_ibge_map, municipios_count
+from lakebrasil.common.enrich import municipios_count, siafi_to_ibge_map
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.common.s3 import get_object_bytes, list_keys

@@ -33,7 +33,7 @@ import re
 import sys
 import time
 import unicodedata
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -79,7 +79,6 @@ def _iter_rms(ibge_to_uf: dict[int, str]) -> Iterator[dict]:
     emitted = 0
     skipped = 0
     for rm in data:
-        rm_id = rm.get("id", "")
         rm_nome = rm.get("nome", "").strip()
         if not rm_nome:
             continue

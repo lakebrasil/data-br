@@ -1,5 +1,5 @@
 """DQ: data_br.ceps — universo postal BR."""
-from lakebrasil.dq.checks import row_count, null_rate, dedup, distinct_count
+from lakebrasil.dq.checks import dedup, distinct_count, null_rate, row_count
 
 CHECKS = [
     row_count(min_rows=1_000_000),  # universo BR ~1.27M CEPs

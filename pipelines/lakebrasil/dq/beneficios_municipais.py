@@ -1,7 +1,12 @@
 """DQ: data_br.beneficios_municipais — BPC + BF agregados."""
 from lakebrasil.dq.checks import (
-    row_count, null_rate, distinct_count, value_range, ibge_coverage,
-    fk_to_municipios, dedup,
+    dedup,
+    distinct_count,
+    fk_to_municipios,
+    ibge_coverage,
+    null_rate,
+    row_count,
+    value_range,
 )
 
 CHECKS = [

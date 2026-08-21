@@ -26,18 +26,17 @@ from __future__ import annotations
 
 import argparse
 import sys
-import time
 import urllib.parse
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterator
 
 import dlt
 
 from lakebrasil.common.args import add_common_args
-from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.common.fetch import ensure_fetched
-from lakebrasil.pipelines.pam import _http_get_json, API_BASE
+from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
+from lakebrasil.pipelines.pam import API_BASE, _http_get_json
 
 TABELA = 6449
 CLASSIF = 12762   # CNAE 2.0

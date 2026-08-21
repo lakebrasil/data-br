@@ -1,5 +1,5 @@
 """DQ: data_br.macro_serie — séries macro BACEN."""
-from lakebrasil.dq.checks import row_count, null_rate, dedup, distinct_count, value_range
+from lakebrasil.dq.checks import dedup, distinct_count, null_rate, row_count
 
 CHECKS = [
     row_count(min_rows=10_000),

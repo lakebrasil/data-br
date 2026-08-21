@@ -39,8 +39,8 @@ import time
 import unicodedata
 import zipfile
 from collections import Counter
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import dlt
 
@@ -166,7 +166,7 @@ def _build_rf_to_ibge(snapshot: str) -> dict[str, int]:
 
 def _aggregate_estab_zip_into(
     s3_key: str,
-    counter: "Counter[tuple[str, str, str, str]]",
+    counter: Counter[tuple[str, str, str, str]],
 ) -> int:
     """Streama um Estabelecimentos{N}.zip e SOMA seus counts em `counter`
     (mutado in-place). Retorna o # de rows lidas no zip.
@@ -224,7 +224,7 @@ def _aggregate_estab_zip_into(
 
 
 def _emit_aggregated(
-    counter: "Counter[tuple[str, str, str, str]]",
+    counter: Counter[tuple[str, str, str, str]],
     snapshot: str,
     rf_to_ibge: dict[str, int],
 ) -> Iterator[dict]:

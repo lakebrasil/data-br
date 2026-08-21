@@ -24,16 +24,15 @@ from __future__ import annotations
 import argparse
 import io
 import sys
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.csv import read_csv_records
-from lakebrasil.common.incremental import loaded_snapshots
-
-from lakebrasil.common.enrich import resolve_ibge, municipios_count
+from lakebrasil.common.enrich import municipios_count, resolve_ibge
 from lakebrasil.common.fetch import ensure_fetched
+from lakebrasil.common.incremental import loaded_snapshots
 from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 

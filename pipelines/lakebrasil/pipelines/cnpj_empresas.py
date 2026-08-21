@@ -43,14 +43,14 @@ import sys
 import time
 import zipfile
 from collections import Counter
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
+from lakebrasil.common.incremental import loaded_snapshots
 from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
-from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 # Importa do cnpj.py os índices RFB→IBGE + constantes
 from lakebrasil.pipelines.cnpj import (
@@ -58,7 +58,7 @@ from lakebrasil.pipelines.cnpj import (
     ESTAB_FILE_RE,
     _build_rf_to_ibge,
 )
-from lakebrasil.common.incremental import loaded_snapshots
+from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "cnpj/raw/"
 EMPRESAS_FILE_RE = re.compile(r"^Empresas(\d+)\.zip$")
@@ -81,7 +81,7 @@ def _build_porte_index(estab_keys_count: int) -> dict[str, str]:
     Python intern automaticamente strings curtas; cnpj_basico é o
     cost dominante (8 bytes × 55M ~ 440 MB pra strings).
     """
-    print(f"PASS 1: building porte index dos Empresas zips...", file=sys.stderr)
+    print("PASS 1: building porte index dos Empresas zips...", file=sys.stderr)
     s3 = s3_client()
     keys = sorted(list_keys(S3_PREFIX))
     empresas_keys = [k for k in keys

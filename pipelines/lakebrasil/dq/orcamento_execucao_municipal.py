@@ -1,5 +1,5 @@
 """DQ: data_br.orcamento_execucao_municipal — despesas federais agregadas."""
-from lakebrasil.dq.checks import row_count, null_rate, value_range, ibge_coverage
+from lakebrasil.dq.checks import ibge_coverage, null_rate, row_count, value_range
 
 CHECKS = [
     row_count(min_rows=100_000),  # ~119K rows agregadas reais

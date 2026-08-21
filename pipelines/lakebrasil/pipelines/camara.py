@@ -25,7 +25,7 @@ import json
 import re
 import sys
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -47,8 +47,9 @@ RESOURCES = {
 
 def _years_already_loaded(table: str) -> set[int]:
     """Anos já em Iceberg pra essa tabela. Empty se não existe ainda."""
-    from lakebrasil.loaders.iceberg import catalog
     from pyiceberg.exceptions import NoSuchTableError
+
+    from lakebrasil.loaders.iceberg import catalog
     try:
         t = catalog().load_table(f"data_br.{table}")
     except NoSuchTableError:

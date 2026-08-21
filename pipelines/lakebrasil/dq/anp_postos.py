@@ -1,6 +1,10 @@
 """DQ: data_br.anp_postos — revendedores varejistas combustíveis."""
 from lakebrasil.dq.checks import (
-    row_count, null_rate, dedup, ibge_coverage, fk_to_municipios,
+    dedup,
+    fk_to_municipios,
+    ibge_coverage,
+    null_rate,
+    row_count,
 )
 
 CHECKS = [

@@ -31,8 +31,8 @@ import sys
 import time
 import zipfile
 from collections import defaultdict
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterator
 
 import dlt
 

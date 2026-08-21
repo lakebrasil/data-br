@@ -35,7 +35,7 @@ import time
 import unicodedata
 import zipfile
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -43,7 +43,7 @@ from lakebrasil.common.args import add_common_args
 from lakebrasil.common.enrich import municipios_count, resolve_ibge
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
-from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys
+from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "sinesp/raw/"
@@ -68,7 +68,7 @@ def _parse_date_br(s: str | None) -> str | None:
     if len(parts) != 3:
         return None
     try:
-        d, m, y = int(parts[0]), int(parts[1]), int(parts[2])
+        _, m, y = int(parts[0]), int(parts[1]), int(parts[2])
         return f"{y:04d}-{m:02d}"
     except ValueError:
         return None
@@ -176,10 +176,10 @@ def main() -> int:
               f"({len(zip_bytes)/1e6:.0f} MB)", file=sys.stderr)
         # Descobre anos disponíveis dentro do zip.
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-            anos = sorted(set(
+            anos = sorted({
                 int(m.group(1)) for n in zf.namelist()
                 if (m := INNER_RE.match(n))
-            ))
+            })
         print(f"  SINESP anos no zip: {anos}", file=sys.stderr)
         for ano in anos:
             if args.year and ano != args.year:

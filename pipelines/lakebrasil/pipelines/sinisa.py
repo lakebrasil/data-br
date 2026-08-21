@@ -40,20 +40,19 @@ import io
 import os
 import re
 import sys
-import time
 import tempfile
+import time
 import zipfile
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
-import boto3
 import dlt
 import openpyxl
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
-from lakebrasil.common.s3 import RAW_BUCKET, get_object_bytes, list_keys
+from lakebrasil.common.s3 import get_object_bytes
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "sinisa/raw/"

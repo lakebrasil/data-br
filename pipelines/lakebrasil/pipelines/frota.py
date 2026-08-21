@@ -33,7 +33,7 @@ import io
 import re
 import sys
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 import openpyxl
@@ -135,8 +135,9 @@ def _iter_xlsx(s3_key: str, ano: int, mes: int) -> Iterator[dict]:
 
 
 def _periods_loaded() -> set[str]:
-    from lakebrasil.loaders.iceberg import catalog
     from pyiceberg.exceptions import NoSuchTableError
+
+    from lakebrasil.loaders.iceberg import catalog
     try:
         t = catalog().load_table("data_br.frota_municipio")
     except NoSuchTableError:

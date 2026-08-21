@@ -15,8 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from lakebrasil.common.s3 import RAW_BUCKET, s3_client
 
@@ -31,7 +30,7 @@ class FetchResult:
     sha256: str
     url: str
     skipped: bool = False
-    error: Optional[str] = None
+    error: str | None = None
 
 
 def s3_key_for_target(target) -> str:
@@ -55,7 +54,7 @@ def manifest_key_for(source: str, s3_key: str) -> str:
     return f"{MANIFEST_PREFIX}/{source}/{stem}.manifest.json"
 
 
-def read_manifest(manifest_key: str) -> Optional[dict]:
+def read_manifest(manifest_key: str) -> dict | None:
     try:
         resp = s3_client().get_object(Bucket=RAW_BUCKET, Key=manifest_key)
         return json.loads(resp["Body"].read())
@@ -73,8 +72,8 @@ def write_manifest(
     s3_key: str,
     sha256: str,
     bytes_written: int,
-    content_type: Optional[str] = None,
-    extra: Optional[dict] = None,
+    content_type: str | None = None,
+    extra: dict | None = None,
 ) -> None:
     payload = {
         "source": source,
@@ -84,7 +83,7 @@ def write_manifest(
         "sha256": sha256,
         "bytes": bytes_written,
         "content_type": content_type,
-        "fetched_at": datetime.now(timezone.utc).isoformat(),
+        "fetched_at": datetime.now(UTC).isoformat(),
     }
     if extra:
         payload.update(extra)
@@ -96,7 +95,7 @@ def write_manifest(
     )
 
 
-def upload_stream_to_s3(stream, s3_key: str, content_type: Optional[str] = None,
+def upload_stream_to_s3(stream, s3_key: str, content_type: str | None = None,
                         chunk_size: int = 8 << 20) -> tuple[int, str]:
     """Stream `stream` (file-like with `.read()`) → s3 multipart upload.
     Computes sha256 incrementally without loading the full payload.

@@ -15,9 +15,9 @@ from __future__ import annotations
 import io
 import os
 import zipfile
+from collections.abc import Iterator
 from functools import lru_cache
 from pathlib import Path
-from typing import Iterator
 
 import boto3
 import duckdb

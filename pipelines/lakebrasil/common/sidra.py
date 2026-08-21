@@ -43,7 +43,7 @@ import argparse
 import json
 import re
 import sys
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -71,7 +71,6 @@ def _iter_records(fonte: str, key: str, ano: str) -> Iterator[dict]:
     payload = json.loads(get_object_bytes(key))
     for variavel in payload:
         var_id = variavel.get("id", "?")
-        var_name = variavel.get("variavel") or ""
         unidade = variavel.get("unidade")
         for resultado in variavel.get("resultados", []):
             # Classificação compõe o id final pra distinguir agregações.

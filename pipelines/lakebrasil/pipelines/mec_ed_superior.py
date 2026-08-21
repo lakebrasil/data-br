@@ -40,7 +40,7 @@ import sys
 import time
 import zipfile
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 

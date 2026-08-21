@@ -31,9 +31,9 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.csv as pa_csv
 
+from lakebrasil.common.args import add_common_args
 from lakebrasil.common.s3 import s3_client
 from lakebrasil.loaders.iceberg import catalog
-from lakebrasil.common.args import add_common_args
 
 RAW_BUCKET = os.environ.get("DATA_BR_RAW_BUCKET", "data-br-raw")
 S3_KEY = "municipios-br/3.2.1/municipios.csv"

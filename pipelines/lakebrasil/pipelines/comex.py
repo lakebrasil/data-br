@@ -32,7 +32,7 @@ import io
 import re
 import sys
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -96,8 +96,9 @@ def _iter_csv(s3_key: str, fluxo: str) -> Iterator[dict]:
 def _years_loaded() -> set[tuple[str, int]]:
     """Set de (fluxo, ano) já em data_br.comex_municipio — pula re-load
     em dev. Empty se table vazia."""
-    from lakebrasil.loaders.iceberg import catalog
     from pyiceberg.exceptions import NoSuchTableError
+
+    from lakebrasil.loaders.iceberg import catalog
     try:
         t = catalog().load_table("data_br.comex_municipio")
     except NoSuchTableError:

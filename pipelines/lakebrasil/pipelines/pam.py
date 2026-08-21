@@ -44,7 +44,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -202,8 +202,7 @@ def main() -> int:
                     if done % 10 == 0 or done == len(jobs):
                         print(f"    PAM tab={tab_id} ano={ano}: {done}/{len(jobs)} jobs",
                               file=sys.stderr)
-                    for rec in fut.result():
-                        yield rec
+                    yield from fut.result()
         return _r
 
     if args.dry_run:

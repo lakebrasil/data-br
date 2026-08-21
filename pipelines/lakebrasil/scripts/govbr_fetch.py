@@ -11,8 +11,8 @@ Usage:
     python3 govbr_fetch.py <url> <output_path>
     python3 govbr_fetch.py --list <urls.txt> <output_dir>
 """
-import sys
 import os
+import sys
 import urllib.request
 from pathlib import Path
 

@@ -40,8 +40,8 @@ from __future__ import annotations
 import argparse
 import sys
 import time
+from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Iterator
 
 import dlt
 
@@ -50,7 +50,7 @@ from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 # Reusa helpers do PAM pipeline pra não duplicar (API client + parser).
-from lakebrasil.pipelines.pam import _get_produtos, _http_get_json, API_BASE
+from lakebrasil.pipelines.pam import API_BASE, _get_produtos, _http_get_json
 from lakebrasil.pipelines.pam import _iter_sidra as _iter_sidra_classif
 
 # Paralelismo SIDRA. 6 workers ainda cabe no rate limit (sem 429s
@@ -151,8 +151,7 @@ def _iter_table(tabela: int, classif: int | None, variaveis: list[str],
             if done % 3 == 0 or done == len(jobs):
                 print(f"    PPM tab={tabela} ano={ano}: {done}/{len(jobs)} jobs",
                       file=sys.stderr)
-            for rec in fut.result():
-                yield rec
+            yield from fut.result()
 
 
 def _build_args() -> argparse.Namespace:

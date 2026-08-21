@@ -1,6 +1,11 @@
 """DQ: data_br.eleicoes_municipais — TSE candidatos."""
 from lakebrasil.dq.checks import (
-    row_count, null_rate, value_range, ibge_coverage, fk_to_municipios, dedup,
+    dedup,
+    fk_to_municipios,
+    ibge_coverage,
+    null_rate,
+    row_count,
+    value_range,
 )
 
 CHECKS = [

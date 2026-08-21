@@ -33,7 +33,7 @@ import sys
 import time
 import zipfile
 from collections import Counter
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 
@@ -95,39 +95,38 @@ def _aggregate_estabelecimentos(
     counter: Counter[tuple[int, str]] = Counter()
     rows_seen = 0
     rows_skip_ibge = 0
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        with zf.open(inner_csv) as fh:
-            text_io = io.TextIOWrapper(fh, encoding="latin-1", newline="",
-                                       errors="replace")
-            reader = csv.DictReader(text_io, delimiter=";")
-            for r in reader:
-                rows_seen += 1
-                co_mun_raw = (r.get("CO_MUNICIPIO_GESTOR") or "").strip()
-                if not co_mun_raw:
-                    rows_skip_ibge += 1
-                    continue
-                try:
-                    co6 = int(co_mun_raw)
-                except ValueError:
-                    rows_skip_ibge += 1
-                    continue
-                ibge = co6_to_ibge.get(co6)
-                if ibge is None:
-                    rows_skip_ibge += 1
-                    continue
-                counter[(ibge, "cnes.estab_total")] += 1
-                nivel_dep = (r.get("NIVEL_DEP") or "").strip()
-                if nivel_dep in NIVEL_PUBLICO:
-                    counter[(ibge, "cnes.estab_publico")] += 1
-                elif nivel_dep in NIVEL_PRIVADO:
-                    counter[(ibge, "cnes.estab_privado")] += 1
-                tipo = (r.get("TP_UNIDADE") or "").strip()
-                if tipo:
-                    counter[(ibge, f"cnes.estab.tipo_{tipo}")] += 1
-                if rows_seen % 100_000 == 0:
-                    print(f"  CNES estab: {rows_seen:,} rows, "
-                          f"{len(counter):,} (ibge,indicador) chaves",
-                          file=sys.stderr)
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf, zf.open(inner_csv) as fh:
+        text_io = io.TextIOWrapper(fh, encoding="latin-1", newline="",
+                                   errors="replace")
+        reader = csv.DictReader(text_io, delimiter=";")
+        for r in reader:
+            rows_seen += 1
+            co_mun_raw = (r.get("CO_MUNICIPIO_GESTOR") or "").strip()
+            if not co_mun_raw:
+                rows_skip_ibge += 1
+                continue
+            try:
+                co6 = int(co_mun_raw)
+            except ValueError:
+                rows_skip_ibge += 1
+                continue
+            ibge = co6_to_ibge.get(co6)
+            if ibge is None:
+                rows_skip_ibge += 1
+                continue
+            counter[(ibge, "cnes.estab_total")] += 1
+            nivel_dep = (r.get("NIVEL_DEP") or "").strip()
+            if nivel_dep in NIVEL_PUBLICO:
+                counter[(ibge, "cnes.estab_publico")] += 1
+            elif nivel_dep in NIVEL_PRIVADO:
+                counter[(ibge, "cnes.estab_privado")] += 1
+            tipo = (r.get("TP_UNIDADE") or "").strip()
+            if tipo:
+                counter[(ibge, f"cnes.estab.tipo_{tipo}")] += 1
+            if rows_seen % 100_000 == 0:
+                print(f"  CNES estab: {rows_seen:,} rows, "
+                      f"{len(counter):,} (ibge,indicador) chaves",
+                      file=sys.stderr)
     print(f"  CNES estab: total={rows_seen:,} skip_ibge={rows_skip_ibge:,} "
           f"chaves={len(counter):,}", file=sys.stderr)
     return counter

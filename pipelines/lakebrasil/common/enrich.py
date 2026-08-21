@@ -14,7 +14,6 @@ from __future__ import annotations
 import re
 import unicodedata
 from functools import lru_cache
-from typing import Optional
 
 from lakebrasil.loaders.iceberg import catalog
 
@@ -48,7 +47,7 @@ def _municipios_index() -> dict[tuple[str, str], int]:
     return out
 
 
-def resolve_ibge(uf: str | None, municipio: str | None) -> Optional[int]:
+def resolve_ibge(uf: str | None, municipio: str | None) -> int | None:
     """Best-effort lookup. Devolve None quando não bate (não falha)."""
     if not uf or not municipio:
         return None

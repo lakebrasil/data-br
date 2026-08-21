@@ -21,8 +21,8 @@ import argparse
 import re
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 import dlt
 import duckdb

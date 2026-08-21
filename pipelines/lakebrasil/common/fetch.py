@@ -17,11 +17,11 @@ from __future__ import annotations
 
 import fnmatch
 import time
-from typing import Iterable
+from collections.abc import Iterable
 
+from lakebrasil.fetchers import REGISTRY
 from lakebrasil.scripts.catalog import CATALOG_PATH, expand_targets, load_catalog
 from lakebrasil.scripts.fetch import RAW_ROOT, _is_fresh
-from lakebrasil.fetchers import REGISTRY
 
 
 def ensure_fetched(

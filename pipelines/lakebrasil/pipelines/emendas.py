@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 import io
 import sys
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 

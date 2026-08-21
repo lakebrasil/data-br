@@ -75,7 +75,7 @@ def run(table_name: str, *, persist: bool = True) -> dict[str, Any]:
         "n_pass": int, "n_warn": int, "n_fail_error": int, "gate_ok": bool,
       }
     """
-    run_id = dt.datetime.now(dt.timezone.utc).isoformat()
+    run_id = dt.datetime.now(dt.UTC).isoformat()
     checks = _load_checks(table_name)
     if not checks:
         return {"table": table_name, "run_id": run_id, "results": [],
@@ -90,7 +90,7 @@ def run(table_name: str, *, persist: bool = True) -> dict[str, Any]:
                 "gate_ok": False, "message": "table does not exist"}
 
     results: list[dict[str, Any]] = []
-    now = dt.datetime.now(dt.timezone.utc)
+    now = dt.datetime.now(dt.UTC)
     for check_fn in checks:
         try:
             res = check_fn(arrow, iceberg)

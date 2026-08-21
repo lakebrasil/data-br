@@ -14,7 +14,7 @@ import csv
 import io
 import re
 import unicodedata
-from typing import Iterator
+from collections.abc import Iterator
 
 
 def normalize_header(s: str) -> str:

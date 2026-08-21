@@ -1,6 +1,10 @@
 """DQ: data_br.comex_municipio — exportação/importação por município."""
 from lakebrasil.dq.checks import (
-    row_count, null_rate, dedup, value_range, ibge_coverage, fk_to_municipios,
+    fk_to_municipios,
+    ibge_coverage,
+    null_rate,
+    row_count,
+    value_range,
 )
 
 CHECKS = [

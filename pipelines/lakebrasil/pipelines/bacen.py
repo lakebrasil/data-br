@@ -19,9 +19,9 @@ import argparse
 import json
 import re
 import sys
+from collections.abc import Iterator
 from datetime import datetime
 from pathlib import PurePosixPath
-from typing import Iterator
 
 import dlt
 

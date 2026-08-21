@@ -41,19 +41,52 @@ def _warehouse() -> str:
 
 
 def _build_s3tables_config(warehouse: str) -> dict:
+    """The native S3 Tables Iceberg REST endpoint is `s3tables IAM
+    authorization only` — it does NOT vend temporary per-table credentials
+    the way the Glue-federated endpoint (with Lake Formation) does. Sending
+    `header.X-Iceberg-Access-Delegation: vended-credentials` is a no-op here
+    (confirmed empirically: `LoadTableResult` never carries
+    `s3.access-key-id`/`secret`/`session-token`). Without explicit
+    credentials, pyarrow's S3FileSystem fails data-plane writes against the
+    S3 Tables backing bucket with a confusing "Please use Signature Version
+    4" error instead of a clean 403 — so we resolve the caller's own
+    (assumed-role-aware) boto3 credentials once here and hand them to
+    pyiceberg explicitly. The caller's principal still needs `s3tables:*`
+    (or at minimum `GetTableMetadataLocation` + `GetTableData`/`PutTableData`)
+    IAM permissions — this doesn't bypass authorization, it just stops
+    relying on vending that this endpoint doesn't do for standalone roles.
+    """
     region = os.environ.get("AWS_REGION", "us-east-1")
     endpoint = os.environ.get(
         "ICEBERG_REST_ENDPOINT",
         f"https://s3tables.{region}.amazonaws.com/iceberg",
     )
-    return {
+
+    import boto3
+
+    session = boto3.Session(profile_name=os.environ.get("AWS_PROFILE"), region_name=region)
+    creds = session.get_credentials()
+    if creds is None:
+        raise RuntimeError(
+            "no AWS credentials resolvable (boto3 default chain) — set AWS_PROFILE "
+            "or run somewhere with an instance/role credential source"
+        )
+    frozen = creds.get_frozen_credentials()
+
+    config = {
         "type": "rest",
         "warehouse": warehouse,
         "uri": endpoint,
         "rest.sigv4-enabled": "true",
         "rest.signing-name": "s3tables",
         "rest.signing-region": region,
+        "s3.region": region,
+        "s3.access-key-id": frozen.access_key,
+        "s3.secret-access-key": frozen.secret_key,
     }
+    if frozen.token:
+        config["s3.session-token"] = frozen.token
+    return config
 
 
 def _build_rest_config(warehouse: str) -> dict:
