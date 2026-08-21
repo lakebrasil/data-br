@@ -9,6 +9,13 @@ Layout S3:
     s3://{RAW_BUCKET}/_manifest/{source}/{stem}.manifest.json
 
 `source_out` vem do `out:` do catalog.yaml (ex: 'bacen/raw/').
+
+Mount mode (`DATA_BR_RAW_MOUNT` set — see `common/s3.py`): writes go
+straight to `{MOUNT_ROOT}/{key}` on local disk instead of the real S3
+API, mirroring the read-side mount support that module already has.
+Lets `ensure_fetched()` (and everything downstream) run with zero AWS
+dependency — fetch from the government source over plain HTTP, land
+raw bytes + manifest on local disk, done.
 """
 from __future__ import annotations
 
@@ -17,7 +24,7 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
-from lakebrasil.common.s3 import RAW_BUCKET, s3_client
+from lakebrasil.common.s3 import RAW_BUCKET, local_path, s3_client
 
 MANIFEST_PREFIX = "_manifest"
 
@@ -55,6 +62,14 @@ def manifest_key_for(source: str, s3_key: str) -> str:
 
 
 def read_manifest(manifest_key: str) -> dict | None:
+    p = local_path(manifest_key)
+    if p is not None:
+        if not p.exists():
+            return None
+        try:
+            return json.loads(p.read_text())
+        except Exception:
+            return None
     try:
         resp = s3_client().get_object(Bucket=RAW_BUCKET, Key=manifest_key)
         return json.loads(resp["Body"].read())
@@ -87,22 +102,41 @@ def write_manifest(
     }
     if extra:
         payload.update(extra)
+    body = json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8")
+
+    p = local_path(manifest_key)
+    if p is not None:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(body)
+        return
+
     s3_client().put_object(
         Bucket=RAW_BUCKET,
         Key=manifest_key,
-        Body=json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8"),
+        Body=body,
         ContentType="application/json",
     )
 
 
 def upload_stream_to_s3(stream, s3_key: str, content_type: str | None = None,
                         chunk_size: int = 8 << 20) -> tuple[int, str]:
-    """Stream `stream` (file-like with `.read()`) → s3 multipart upload.
-    Computes sha256 incrementally without loading the full payload.
-    Returns (bytes_written, sha256_hex)."""
-    s3 = s3_client()
+    """Stream `stream` (file-like with `.read()`) → s3 multipart upload
+    (or, in mount mode, a local file write). Computes sha256 incrementally
+    without loading the full payload. Returns (bytes_written, sha256_hex)."""
     h = hashlib.sha256()
     total = 0
+
+    p = local_path(s3_key)
+    if p is not None:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        with open(p, "wb") as f:
+            while chunk := stream.read(chunk_size):
+                h.update(chunk)
+                total += len(chunk)
+                f.write(chunk)
+        return total, h.hexdigest()
+
+    s3 = s3_client()
 
     # Use multipart for anything > 8 MB; below that, single PUT.
     head = stream.read(chunk_size)
@@ -163,6 +197,9 @@ def upload_stream_to_s3(stream, s3_key: str, content_type: str | None = None,
 
 
 def s3_object_exists(s3_key: str) -> bool:
+    p = local_path(s3_key)
+    if p is not None:
+        return p.exists()
     s3 = s3_client()
     try:
         s3.head_object(Bucket=RAW_BUCKET, Key=s3_key)
