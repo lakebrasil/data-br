@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lakebrasil — open source Brazilian public data engine</title>
+<meta name="description" content="Install and quickstart docs for the lakebrasil PyPI package, self-host backends, and the planned MCP server.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💧</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  /* ── Tokens ─────────────────────────────────────────── */
+  :root {
+    --paper: #f2f6f5;
+    --paper-tint: #e5edeb;
+    --ink: #0b1f1c;
+    --ink-soft: #395550;
+    --ink-faint: #6b8681;
+    --surface-tint: #dde8e6;
+    --teal: #0f766e;
+    --teal-strong: #0a5d56;
+    --emerald: #059669;
+    --gold: #b8892c;
+    --border: rgba(15, 60, 52, 0.14);
+    --border-strong: rgba(15, 60, 52, 0.22);
+
+    --glass-bg: linear-gradient(135deg,
+      rgba(255,255,255,0.62) 0%,
+      rgba(221,232,230,0.4) 45%,
+      rgba(240,247,246,0.5) 75%,
+      rgba(255,255,255,0.62) 100%);
+    --glass-border-t: rgba(255,255,255,0.9);
+    --glass-border-l: rgba(255,255,255,0.7);
+    --glass-border-r: rgba(160,190,184,0.35);
+    --glass-border-b: rgba(160,190,184,0.3);
+    --glass-shadow:
+      inset 0 1px 2px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 2px 0 rgba(8,30,26,0.05),
+      0 4px 16px -2px rgba(8,30,26,0.10),
+      0 12px 36px -10px rgba(8,30,26,0.08);
+
+    --code-bg: #0d1f1c;
+    --code-ink: #dff2ee;
+    --code-accent: #6fd8c4;
+
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1.1rem;
+    --radius-xl: 1.4rem;
+
+    --duration-md: 220ms;
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #081714;
+      --paper-tint: #0c211d;
+      --ink: #e9f4f1;
+      --ink-soft: #a9c9c2;
+      --ink-faint: #6f938c;
+      --surface-tint: #143430;
+      --teal: #3ecbb6;
+      --teal-strong: #6fe0cd;
+      --emerald: #3fcf8e;
+      --gold: #e0b45a;
+      --border: rgba(150, 220, 205, 0.14);
+      --border-strong: rgba(150, 220, 205, 0.24);
+
+      --glass-bg: linear-gradient(140deg,
+        rgba(18,45,40,0.7) 0%,
+        rgba(8,23,20,0.62) 45%,
+        rgba(12,32,28,0.55) 100%);
+      --glass-border-t: rgba(255,255,255,0.16);
+      --glass-border-l: rgba(255,255,255,0.1);
+      --glass-border-r: rgba(255,255,255,0.05);
+      --glass-border-b: rgba(255,255,255,0.04);
+      --glass-shadow:
+        inset 0 1px 1px 0 rgba(255,255,255,0.1),
+        0 14px 40px -14px rgba(0,0,0,0.6);
+
+      --code-bg: #04110e;
+      --code-ink: #d9f2ec;
+      --code-accent: #6fe0cd;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #081714;
+    --paper-tint: #0c211d;
+    --ink: #e9f4f1;
+    --ink-soft: #a9c9c2;
+    --ink-faint: #6f938c;
+    --surface-tint: #143430;
+    --teal: #3ecbb6;
+    --teal-strong: #6fe0cd;
+    --emerald: #3fcf8e;
+    --gold: #e0b45a;
+    --border: rgba(150, 220, 205, 0.14);
+    --border-strong: rgba(150, 220, 205, 0.24);
+
+    --glass-bg: linear-gradient(140deg,
+      rgba(18,45,40,0.7) 0%,
+      rgba(8,23,20,0.62) 45%,
+      rgba(12,32,28,0.55) 100%);
+    --glass-border-t: rgba(255,255,255,0.16);
+    --glass-border-l: rgba(255,255,255,0.1);
+    --glass-border-r: rgba(255,255,255,0.05);
+    --glass-border-b: rgba(255,255,255,0.04);
+    --glass-shadow:
+      inset 0 1px 1px 0 rgba(255,255,255,0.1),
+      0 14px 40px -14px rgba(0,0,0,0.6);
+
+    --code-bg: #04110e;
+    --code-ink: #d9f2ec;
+    --code-accent: #6fe0cd;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root { --duration-md: 0ms; }
+  }
+
+  /* ── Base ───────────────────────────────────────────── */
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--teal-strong); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color var(--duration-md) var(--ease-standard); }
+  a:hover { border-color: currentColor; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 3px; border-radius: 2px; }
+
+  h1, h2, h3 { font-family: 'Newsreader', Georgia, serif; color: var(--ink); text-wrap: balance; font-weight: 500; margin: 0; }
+
+  code, .mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; }
+
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 28px; }
+  .prose { max-width: 700px; }
+
+  /* ── Chrome ─────────────────────────────────────────── */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 0;
+  }
+  .wordmark { display: flex; align-items: baseline; gap: 8px; font-family: 'Newsreader', serif; font-size: 1.15rem; font-weight: 600; }
+  .wordmark .drop { color: var(--teal); font-size: 0.95em; }
+  .topnav { display: flex; gap: 22px; font-size: 0.92rem; color: var(--ink-soft); }
+  .topnav a { color: var(--ink-soft); }
+
+  /* ── Hero ───────────────────────────────────────────── */
+  .hero {
+    padding: 64px 0 56px;
+    display: grid;
+    gap: 26px;
+    animation: rise 640ms var(--ease-standard) both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .hero { animation: none; } }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--teal-strong);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); }
+
+  .hero h1 { font-size: clamp(2.6rem, 5vw, 3.6rem); letter-spacing: -0.01em; }
+  .hero h1 em { font-style: italic; color: var(--teal); }
+
+  .hero .subhead { max-width: 620px; font-size: 1.14rem; color: var(--ink-soft); }
+
+  .stat-row { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 4px; }
+  .stat { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  .stat b { display: block; font-size: 1.3rem; color: var(--ink); }
+  .stat span { font-size: 0.78rem; color: var(--ink-faint); }
+
+  /* ── Glass surfaces ─────────────────────────────────── */
+  .glass {
+    background: var(--glass-bg);
+    border-top: 1.5px solid var(--glass-border-t);
+    border-left: 1.5px solid var(--glass-border-l);
+    border-right: 1.5px solid var(--glass-border-r);
+    border-bottom: 1.5px solid var(--glass-border-b);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(18px) saturate(1.5);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    border-radius: var(--radius-xl);
+  }
+
+  /* ── Terminal panel ─────────────────────────────────── */
+  .terminal {
+    background: var(--code-bg);
+    border-radius: var(--radius-lg);
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 18px 40px -18px rgba(4,20,17,0.55);
+    max-width: 560px;
+  }
+  .terminal code {
+    color: var(--code-ink);
+    font-size: 0.98rem;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  .terminal code .prompt { color: var(--code-accent); margin-right: 10px; }
+  .copy-btn {
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: var(--code-ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background var(--duration-md) var(--ease-standard);
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.14); }
+
+  /* ── Sections ───────────────────────────────────────── */
+  section { padding: 52px 0; border-top: 1px solid var(--border); }
+  section:first-of-type { border-top: none; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; margin-bottom: 26px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 1.7rem; }
+  .section-head .tag { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--ink-faint); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  p { color: var(--ink-soft); }
+  .prose p + p { margin-top: 14px; }
+
+  /* ── Install extras ─────────────────────────────────── */
+  .extras-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin-top: 22px;
+  }
+  .extra-card { padding: 18px 20px; }
+  .extra-card .name { font-family: 'IBM Plex Mono', monospace; font-size: 0.86rem; color: var(--teal-strong); font-weight: 600; }
+  .extra-card p { margin-top: 6px; font-size: 0.9rem; }
+
+  /* ── CLI reference ──────────────────────────────────── */
+  .cli-list { display: grid; gap: 2px; margin-top: 22px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); }
+  .cli-row {
+    display: grid;
+    grid-template-columns: minmax(200px, 320px) 1fr;
+    gap: 20px;
+    padding: 15px 20px;
+    background: var(--paper-tint);
+    align-items: center;
+  }
+  .cli-row:nth-child(odd) { background: color-mix(in srgb, var(--paper-tint) 55%, var(--paper)); }
+  .cli-row code { font-size: 0.86rem; color: var(--teal-strong); overflow-x: auto; }
+  .cli-row .desc { font-size: 0.9rem; color: var(--ink-soft); }
+
+  /* ── Backend cards ──────────────────────────────────── */
+  .backend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 22px; }
+  .backend-card { padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .backend-card .letter { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; color: var(--gold); letter-spacing: 0.06em; text-transform: uppercase; }
+  .backend-card h3 { font-size: 1.05rem; font-family: 'Inter', sans-serif; font-weight: 600; }
+  .backend-card p { font-size: 0.88rem; margin: 0; }
+  .backend-card pre {
+    margin: 4px 0 0;
+    background: var(--code-bg);
+    color: var(--code-ink);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.76rem;
+    line-height: 1.6;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+  }
+  .backend-card pre .k { color: var(--code-accent); }
+
+  /* ── MCP roadmap ────────────────────────────────────── */
+  .mcp-panel { padding: 30px 30px 28px; position: relative; border: 1.5px dashed var(--border-strong); background: var(--glass-bg); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border-radius: var(--radius-xl); box-shadow: var(--glass-shadow); }
+  .roadmap-badge {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--gold);
+    background: color-mix(in srgb, var(--gold) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+    padding: 5px 11px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .mcp-panel h3 { font-size: 1.25rem; font-family: 'Newsreader', serif; margin-bottom: 8px; }
+  .mcp-panel p { font-size: 0.95rem; max-width: 640px; }
+  .scope-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
+  .scope-chip {
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;
+    border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+    padding: 8px 12px; color: var(--ink-soft);
+  }
+  .scope-chip b { color: var(--ink); }
+  .mcp-panel pre {
+    margin-top: 16px;
+    background: var(--code-bg); color: var(--code-ink);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; line-height: 1.65;
+    padding: 16px 18px; border-radius: var(--radius-md); overflow-x: auto;
+  }
+  .mcp-panel pre .comment { color: var(--ink-faint); }
+  .mcp-panel pre .k { color: var(--code-accent); }
+  .preview-note { font-size: 0.78rem; color: var(--ink-faint); margin-top: 8px; font-style: italic; }
+
+  /* ── Catalog table ──────────────────────────────────── */
+  .table-scroll { overflow-x: auto; margin-top: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 620px; }
+  th { text-align: left; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; padding: 12px 18px; background: var(--paper-tint); }
+  td { padding: 13px 18px; border-top: 1px solid var(--border); color: var(--ink-soft); }
+  td.domain { color: var(--ink); font-weight: 500; }
+
+  /* ── Footer ─────────────────────────────────────────── */
+  footer { padding: 44px 0 60px; }
+  .footer-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer-links { display: flex; gap: 20px; font-size: 0.88rem; color: var(--ink-soft); }
+  .footer-links a { color: var(--ink-soft); }
+  .footer-note { font-size: 0.82rem; color: var(--ink-faint); }
+
+  @media (max-width: 620px) {
+    .cli-row { grid-template-columns: 1fr; gap: 6px; }
+    .terminal { flex-direction: column; align-items: stretch; }
+    .footer-row { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="wordmark"><span class="drop">◍</span> lakebrasil</div>
+    <nav class="topnav">
+      <a href="https://pypi.org/project/lakebrasil/">PyPI</a>
+      <a href="https://github.com/lakebrasil/data-br">GitHub</a>
+    </nav>
+  </div>
+
+  <section class="hero" style="border-top:none;">
+    <span class="eyebrow">open source · pip install lakebrasil</span>
+    <h1>The <em>datalake</em> for<br>Brazilian public data.</h1>
+    <p class="subhead">35 pipelines pull, normalize, and aggregate government data — IBGE, BACEN, TSE, RAIS, Receita Federal, and more — into an open Iceberg lakehouse keyed by município. This page documents the Python package: how to install it, run it against your own AWS account, and what's coming next for querying it as an MCP server.</p>
+
+    <div class="terminal">
+      <code><span class="prompt">$</span>pip install lakebrasil</code>
+      <button class="copy-btn" data-copy="pip install lakebrasil">copy</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat"><b>35</b><span>pipelines</span></div>
+      <div class="stat"><b>17</b><span>tables</span></div>
+      <div class="stat"><b>~44M</b><span>rows aggregated</span></div>
+      <div class="stat"><b>20+</b><span>gov.br sources</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Install</h2>
+      <span class="tag">PyPI · lakebrasil</span>
+    </div>
+    <p class="prose">Core install covers the 35 HTTP/SIDRA pipelines. A handful of sources need optional extras for their file formats — install only what you'll actually run.</p>
+
+    <div class="extras-grid">
+      <div class="glass extra-card">
+        <div class="name">lakebrasil</div>
+        <p>Core — HTTP + SIDRA pipelines, no extras needed.</p>
+      </div>
+      <div class="glass extra-card">
+        <div class="name">lakebrasil[excel]</div>
+        <p>sinisa, mec_ed_superior — .xlsx sources.</p>
+      </div>
+      <div class="glass extra-card">
+        <div class="name">lakebrasil[archive]</div>
+        <p>rais_estab — .7z archive extraction.</p>
+      </div>
+      <div class="glass extra-card">
+        <div class="name">lakebrasil[geo]</div>
+        <p>inpe — shapefiles, geopandas, spatial joins.</p>
+      </div>
+      <div class="glass extra-card">
+        <div class="name">lakebrasil[all]</div>
+        <p>Every extra — all 35 pipelines runnable.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>CLI quickstart</h2>
+      <span class="tag">lakebrasil &lt;command&gt;</span>
+    </div>
+    <p class="prose">Every pipeline runs through one entry point. A run is fetch → transform → write to Iceberg, but each step is independently skippable.</p>
+
+    <div class="cli-list">
+      <div class="cli-row"><code>lakebrasil list</code><span class="desc">List all 35 available pipelines.</span></div>
+      <div class="cli-row"><code>lakebrasil run anp_precos --dry-run</code><span class="desc">Stage a pipeline to local DuckDB — no Iceberg write, no AWS needed.</span></div>
+      <div class="cli-row"><code>lakebrasil run snis --no-fetch</code><span class="desc">Skip re-download, transform + write what's already staged in S3.</span></div>
+      <div class="cli-row"><code>lakebrasil dq</code><span class="desc">Run the declarative data-quality checks that gate every Iceberg push.</span></div>
+      <div class="cli-row"><code>lakebrasil fetch bacen_ipca_mensal</code><span class="desc">Fetch one source's raw files without running the transform step.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Self-host</h2>
+      <span class="tag">ICEBERG_WAREHOUSE=…</span>
+    </div>
+    <p class="prose">The Iceberg backend is auto-detected from one environment variable. Your data, your account — nothing here requires talking to a lakebrasil-run service.</p>
+
+    <div class="backend-grid">
+      <div class="glass backend-card">
+        <span class="letter">A · managed</span>
+        <h3>AWS S3 Tables</h3>
+        <p>Default. Managed Iceberg, queryable from Athena, Spark, DuckDB, or Trino.</p>
+        <pre>export <span class="k">ICEBERG_WAREHOUSE</span>=arn:aws:s3tables:...
+export <span class="k">AWS_PROFILE</span>=your-profile</pre>
+      </div>
+      <div class="glass backend-card">
+        <span class="letter">B · zero AWS</span>
+        <h3>MinIO + Nessie</h3>
+        <p>100% OSS, runs via Docker Compose. No cloud account required.</p>
+        <pre>docker compose up -d
+export <span class="k">ICEBERG_WAREHOUSE</span>=warehouse</pre>
+      </div>
+      <div class="glass backend-card">
+        <span class="letter">C · portable</span>
+        <h3>Any Iceberg REST</h3>
+        <p>Lakekeeper, Tabular, or any vanilla REST catalog implementation.</p>
+        <pre>export <span class="k">ICEBERG_WAREHOUSE</span>=s3://bucket/warehouse/
+export <span class="k">ICEBERG_REST_ENDPOINT</span>=https://...</pre>
+      </div>
+      <div class="glass backend-card">
+        <span class="letter">D · local dev</span>
+        <h3>SQLite + filesystem</h3>
+        <p>Zero-infra — a single path on disk, good for trying a pipeline out.</p>
+        <pre>export <span class="k">ICEBERG_WAREHOUSE</span>=local:///tmp/warehouse</pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Querying via MCP</h2>
+      <span class="tag">Model Context Protocol</span>
+    </div>
+
+    <div class="mcp-panel">
+      <span class="roadmap-badge">◐ planned — not yet published</span>
+      <h3>One MCP server, gated by an API key</h3>
+      <p>Instead of a self-hosted "read-only" server and a separate paid one, lakebrasil will ship a single MCP package on PyPI — installable, source open and auditable. Every call, historical or live, is authenticated with an API key from your lakebrasil account; a free key covers historical-lake reads, a paid one adds live queries against gov.br sources.</p>
+
+      <div class="scope-row">
+        <span class="scope-chip"><b>lake_read_*</b> — historical Iceberg tables, free tier</span>
+        <span class="scope-chip"><b>live_query_*</b> — real-time source queries, paid tier</span>
+      </div>
+
+      <pre><span class="comment">// claude_desktop_config.json — illustrative shape, subject to change</span>
+{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"lakebrasil"</span>: {
+      <span class="k">"command"</span>: <span class="k">"uvx"</span>,
+      <span class="k">"args"</span>: [<span class="k">"lakebrasil-mcp"</span>],
+      <span class="k">"env"</span>: { <span class="k">"LAKEBRASIL_API_KEY"</span>: <span class="k">"lb_..."</span> }
+    }
+  }
+}</pre>
+      <p class="preview-note">This section documents intent, not a shipped interface — the package name and config shape above are a preview, not yet on PyPI.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>What's in the lake</h2>
+      <span class="tag">data_br.*</span>
+    </div>
+    <p class="prose">17 tables keyed by IBGE 7-digit <code>ibge_code</code>, aggregated from 20+ sources across 12 domains.</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Domain</th><th>Examples</th></tr></thead>
+        <tbody>
+          <tr><td class="domain">Demographics</td><td>Censo IBGE, região metropolitana, CEPs, registro civil</td></tr>
+          <tr><td class="domain">Economy</td><td>RAIS (20 years), CEMPRE, comércio exterior municipal, frota</td></tr>
+          <tr><td class="domain">Public finance</td><td>STN, FNDE Fundeb/SIOPE, orçamento, emendas</td></tr>
+          <tr><td class="domain">Social</td><td>BPC, Bolsa Família, Pé-de-Meia</td></tr>
+          <tr><td class="domain">Education</td><td>INEP Censo Escolar (5 years), MEC ensino superior</td></tr>
+          <tr><td class="domain">Health</td><td>DataSUS CNES, ANS planos de saúde, SNIS/SINISA</td></tr>
+          <tr><td class="domain">Agriculture</td><td>IBGE PAM lavouras, PPM pecuária</td></tr>
+          <tr><td class="domain">Environment</td><td>INPE PRODES — desmatamento na Amazônia</td></tr>
+          <tr><td class="domain">Politics</td><td>TSE eleições, Câmara dos Deputados</td></tr>
+          <tr><td class="domain">Public safety</td><td>SINESP / MJSP indicators</td></tr>
+          <tr><td class="domain">Companies</td><td>CNPJ Receita Federal, ANEEL geração, ANP combustíveis</td></tr>
+          <tr><td class="domain">Macroeconomics</td><td>BACEN SGS (IPCA, Selic, câmbio), PNAD Contínua</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-row">
+      <div class="footer-links">
+        <a href="https://github.com/lakebrasil/data-br">Repository</a>
+        <a href="https://github.com/lakebrasil/data-br/issues">Issues</a>
+        <a href="https://github.com/lakebrasil/data-br/blob/main/LICENSE">MIT License</a>
+      </div>
+      <span class="footer-note">Built on public data, not proprietary access.</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      var done = function () {
+        var original = btn.textContent;
+        btn.textContent = 'copied';
+        setTimeout(function () { btn.textContent = original; }, 1400);
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {});
+        }
+      } catch (e) {}
+    });
+  });
+</script>
+</body>
+</html>
