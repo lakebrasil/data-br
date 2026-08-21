@@ -27,6 +27,7 @@ import dlt
 
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
+from lakebrasil.common.incremental import max_value_per
 from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
@@ -38,9 +39,6 @@ def _parse_brdate(s: str) -> str:
     """BCB SGS devolve datas DD/MM/YYYY — converte pra ISO para que o
     DuckDB/Iceberg lidem com tipo DATE consistente (e ordene direito)."""
     return datetime.strptime(s, "%d/%m/%Y").date().isoformat()
-
-
-from lakebrasil.common.incremental import max_value_per
 
 
 @dlt.resource(

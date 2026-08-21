@@ -144,14 +144,14 @@ forkar/modificar.
                           │
                           ▼
         ┌─────────────────────────────────┐
-        │  _scripts/fetchers/             │  fetch → S3 raw
+        │  lakebrasil/fetchers/           │  fetch → S3 raw
         │  (govbr F5 bypass, FTP, SIDRA   │  (idempotent, sha256-tracked)
         │   paginators, WebDAV auth)      │
         └─────────────────────────────────┘
                           │
                           ▼
         ┌─────────────────────────────────┐
-        │  _pipelines/<source>.py         │  stream parse + agg
+        │  lakebrasil/pipelines/<src>.py  │  stream parse + agg
         │  (defaultdict per município,    │  por município/período
         │   ThreadPool, no pandas)        │
         └─────────────────────────────────┘
@@ -172,7 +172,7 @@ forkar/modificar.
 
 ## Data quality
 
-`pipelines/_dq/` — declarative checks framework. Cada pipeline pode
+`pipelines/lakebrasil/dq/` — declarative checks framework. Cada pipeline pode
 declarar:
 - Row count thresholds (min/max esperado por período)
 - Schema validation (colunas requeridas, tipos)
