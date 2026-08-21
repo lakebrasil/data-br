@@ -60,9 +60,14 @@ geo = [
     "pyproj>=3.6",
     "fiona>=1.10",
 ]
+# zero-infra dev backend (ICEBERG_WAREHOUSE=local://...) — pyiceberg's SqlCatalog
+# needs sqlalchemy, which neither pyiceberg nor dlt pull in by default
+local = [
+    "pyiceberg[sql-sqlite]>=0.7",
+]
 # everything required to run all 35 pipelines locally
 all = [
-    "lakebrasil[excel,archive,geo]",
+    "lakebrasil[excel,archive,geo,local]",
 ]
 # development extras
 dev = [

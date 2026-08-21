@@ -453,7 +453,8 @@ export <span class="k">ICEBERG_REST_ENDPOINT</span>=https://...</pre>
         <span class="letter">D · local dev</span>
         <h3>SQLite + filesystem</h3>
         <p>Zero-infra — a single path on disk, good for trying a pipeline out.</p>
-        <pre>export <span class="k">ICEBERG_WAREHOUSE</span>=local:///tmp/warehouse</pre>
+        <pre>pip install <span class="k">'lakebrasil[local]'</span>
+export <span class="k">ICEBERG_WAREHOUSE</span>=local:///tmp/warehouse</pre>
       </div>
     </div>
   </section>

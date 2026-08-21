@@ -115,9 +115,12 @@ lakebrasil run rais --no-fetch
 
 #### d) Zero-infra dev — SQLite + filesystem local
 ```bash
+pip install 'lakebrasil[local]'   # pulls in pyiceberg's sql-sqlite extra (sqlalchemy)
+
 export ICEBERG_WAREHOUSE=local:///tmp/lakebrasil-warehouse
-lakebrasil run anp_precos --dry-run --no-fetch
+lakebrasil run anp_precos --no-fetch   # real Iceberg write — SQLite catalog + local Parquet files
 ```
+No AWS account, no Docker — real Iceberg tables (queryable with DuckDB) on local disk.
 
 Cada pipeline tem docstring com fonte/cobertura/caveats —
 veja [`lakebrasil/pipelines/`](./lakebrasil/pipelines/).
