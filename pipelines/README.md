@@ -207,7 +207,9 @@ significa:
 - [ ] PNCP compras públicas
 - [ ] TransfereGov convênios federais
 - [ ] Querido Diário (diários oficiais municipais)
-- [ ] Rust REST API + MCP server sobre o lake
+
+**MCP server:** já existe, em repo separado — [lakebrasil-mcp](https://github.com/lakebrasil/mcp),
+86 tools sobre dados ao vivo (não sobre o lake — consulta a fonte original em tempo real).
 
 Issues abertas: [github.com/lakebrasil/data-br/issues](https://github.com/lakebrasil/data-br/issues).
 

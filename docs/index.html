@@ -290,7 +290,7 @@
   .backend-card pre .k { color: var(--code-accent); }
 
   /* ── MCP roadmap ────────────────────────────────────── */
-  .mcp-panel { padding: 30px 30px 28px; position: relative; border: 1.5px dashed var(--border-strong); background: var(--glass-bg); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border-radius: var(--radius-xl); box-shadow: var(--glass-shadow); }
+  .mcp-panel { padding: 30px 30px 28px; position: relative; border: 1.5px solid var(--glass-border-t); background: var(--glass-bg); backdrop-filter: blur(18px) saturate(1.5); -webkit-backdrop-filter: blur(18px) saturate(1.5); border-radius: var(--radius-xl); box-shadow: var(--glass-shadow); }
   .roadmap-badge {
     display: inline-flex; align-items: center; gap: 7px;
     font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 0.05em; text-transform: uppercase;
@@ -298,6 +298,11 @@
     background: color-mix(in srgb, var(--gold) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
     padding: 5px 11px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .roadmap-badge.live-badge {
+    color: var(--emerald);
+    background: color-mix(in srgb, var(--emerald) 14%, transparent);
+    border-color: color-mix(in srgb, var(--emerald) 35%, transparent);
   }
   .mcp-panel h3 { font-size: 1.25rem; font-family: 'Newsreader', serif; margin-bottom: 8px; }
   .mcp-panel p { font-size: 0.95rem; max-width: 640px; }
@@ -460,26 +465,25 @@ export <span class="k">ICEBERG_REST_ENDPOINT</span>=https://...</pre>
     </div>
 
     <div class="mcp-panel">
-      <span class="roadmap-badge">◐ planned — not yet published</span>
-      <h3>One MCP server, gated by an API key</h3>
-      <p>Instead of a self-hosted "read-only" server and a separate paid one, lakebrasil will ship a single MCP package on PyPI — installable, source open and auditable. Every call, historical or live, is authenticated with an API key from your lakebrasil account; a free key covers historical-lake reads, a paid one adds live queries against gov.br sources.</p>
+      <span class="roadmap-badge live-badge">● live — 86 tools, 31 sources</span>
+      <h3>lakebrasil-mcp — the live counterpart</h3>
+      <p>A separate, open-source MCP server: <a href="https://github.com/lakebrasil/mcp">github.com/lakebrasil/mcp</a>. It doesn't touch the lake at all — every tool call goes straight to the original source's API in real time (BACEN, IBGE, Câmara, Senado, Portal da Transparência, CNPJ/CEP lookups, and 26 more). No account, no API key, for almost every tool.</p>
 
       <div class="scope-row">
-        <span class="scope-chip"><b>lake_read_*</b> — historical Iceberg tables, free tier</span>
-        <span class="scope-chip"><b>live_query_*</b> — real-time source queries, paid tier</span>
+        <span class="scope-chip"><b>lakebrasil</b> — historical lake, 35 batch pipelines, this repo</span>
+        <span class="scope-chip"><b>lakebrasil-mcp</b> — live queries, 86 tools, separate repo</span>
       </div>
 
-      <pre><span class="comment">// claude_desktop_config.json — illustrative shape, subject to change</span>
+      <pre><span class="comment">// claude_desktop_config.json</span>
 {
   <span class="k">"mcpServers"</span>: {
     <span class="k">"lakebrasil"</span>: {
       <span class="k">"command"</span>: <span class="k">"uvx"</span>,
-      <span class="k">"args"</span>: [<span class="k">"lakebrasil-mcp"</span>],
-      <span class="k">"env"</span>: { <span class="k">"LAKEBRASIL_API_KEY"</span>: <span class="k">"lb_..."</span> }
+      <span class="k">"args"</span>: [<span class="k">"lakebrasil-mcp"</span>]
     }
   }
 }</pre>
-      <p class="preview-note">This section documents intent, not a shipped interface — the package name and config shape above are a preview, not yet on PyPI.</p>
+      <p class="preview-note">One exception: <code>transparencia_*</code> tools need a free <code>PORTAL_TRANSPARENCIA_API_KEY</code> — see the <a href="https://github.com/lakebrasil/mcp#install">repo README</a>.</p>
     </div>
   </section>
 
