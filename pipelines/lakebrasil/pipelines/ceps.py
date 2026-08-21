@@ -1,13 +1,19 @@
 """Brazilian CEPs (~1.1M postal codes) → data_br.ceps via pyiceberg.
 
-Seed/dim table loaded from `s3://data-br-raw/municipios-br/3.2.1/ceps.csv`
-(produced by the upstream `municipios-br` package — Correios doesn't
-publish a free bulk download, so the package merges multiple sources:
-Kelvins, ViaCEP fallback, scraped CEP-by-CEP retries).
+Seed/dim table loaded directly from the `municipios-br` npm package's
+bundled SQLite database (fetched from the npm registry, cached locally —
+see `common/municipios_br_source.py`; no S3/AWS dependency at all).
+Correios doesn't publish a free bulk download, so the upstream package
+merges multiple sources: Kelvins, ViaCEP fallback, scraped CEP-by-CEP
+retries. Previously loaded from a manually-staged, untracked CSV export
+of the same package — reading the SQLite source directly is more
+current and reproducible.
 
-Same overwrite-only semantics as `municipios` (see that module's
-docstring); pyiceberg direct because dlt's s3tables_iceberg
-destination is append-only.
+Same replace-via-delete-then-dlt-append semantics as `municipios` (see
+that module's docstring for why and the atomicity tradeoff) — loads via
+dlt + the shared `iceberg` destination like every other pipeline,
+~1.27M rows batched across multiple load jobs (destination's
+batch_size=100_000), all landing after `main()`'s upfront delete.
 
 Schedule: yearly (CEPs change rarely; only when Correios opens new
 postal districts). Re-run quando o package municipios-br publica novo
@@ -16,29 +22,29 @@ release.
 from __future__ import annotations
 
 import argparse
-import io
-import os
 import sys
+from typing import Iterator
 
+import dlt
 import pyarrow as pa
-import pyarrow.csv as pa_csv
+from pyiceberg.exceptions import NoSuchTableError
 
 from lakebrasil.common.args import add_common_args
-from lakebrasil.common.s3 import s3_client
-from lakebrasil.loaders.iceberg import catalog
+from lakebrasil.common.municipios_br_source import connect
+from lakebrasil.loaders.iceberg import NAMESPACE, catalog
+from lakebrasil.pipelines.destinations.iceberg import iceberg
 
-RAW_BUCKET = os.environ.get("DATA_BR_RAW_BUCKET", "data-br-raw")
-S3_KEY = "municipios-br/3.2.1/ceps.csv"
-TABLE = "data_br.ceps"
+TABLE = "ceps"
 
 # Column order matches CEPS_SCHEMA in s3tables-stack.ts (field-id order).
+# `ibge_code` in the Iceberg schema maps to the sqlite table's `ibge` column.
 COLS = ("cep", "logradouro", "complemento", "bairro", "localidade",
         "uf", "ibge_code", "ddd", "source")
+_SQLITE_COLUMN_FOR = {"ibge_code": "ibge"}
 
 # Required (NOT NULL) columns per CEPS_SCHEMA.
 REQUIRED = frozenset({"cep", "localidade", "uf", "source"})
 
-# Explicit types — `ibge` column gets renamed to `ibge_code` after parse.
 TYPES: dict[str, pa.DataType] = {
     "cep": pa.string(),
     "logradouro": pa.string(),
@@ -46,29 +52,31 @@ TYPES: dict[str, pa.DataType] = {
     "bairro": pa.string(),
     "localidade": pa.string(),
     "uf": pa.string(),
-    "ibge": pa.int64(),  # CSV column is `ibge`; renamed below.
+    "ibge_code": pa.int64(),
     "ddd": pa.string(),
     "source": pa.string(),
-    "synced_at": pa.string(),  # dropped after parse (not in Iceberg schema).
 }
 
 
-def _read_csv() -> pa.Table:
-    raw = s3_client().get_object(Bucket=RAW_BUCKET, Key=S3_KEY)["Body"].read()
-    convert = pa_csv.ConvertOptions(
-        column_types=TYPES,
-        strings_can_be_null=True,
-        null_values=["", "null", "NULL"],
-    )
-    table = pa_csv.read_csv(io.BytesIO(raw), convert_options=convert)
+def _read_from_sqlite() -> pa.Table:
+    conn = connect()
+    try:
+        select_cols = ", ".join(_SQLITE_COLUMN_FOR.get(c, c) for c in COLS)
+        rows = conn.execute(f"SELECT {select_cols} FROM ceps").fetchall()
+    finally:
+        conn.close()
 
-    # Match Iceberg column name (CSV exports it as `ibge`).
-    table = table.rename_columns([
-        "ibge_code" if c == "ibge" else c for c in table.column_names
-    ])
-    if "synced_at" in table.column_names:
-        table = table.drop_columns(["synced_at"])
-    table = table.select(list(COLS))
+    columnar: dict[str, list] = {col: [] for col in COLS}
+    for row in rows:
+        for i, col in enumerate(COLS):
+            value = row[i]
+            # sqlite's `ibge` column is TEXT ('1200401'), not INTEGER —
+            # cast to match the Iceberg schema's ibge_code:int64.
+            if col == "ibge_code" and value is not None:
+                value = int(value) if value != "" else None
+            columnar[col].append(value)
+
+    table = pa.table(columnar, schema=pa.schema([pa.field(c, TYPES[c]) for c in COLS]))
 
     fields = [
         pa.field(f.name, f.type, nullable=(f.name not in REQUIRED))
@@ -77,26 +85,35 @@ def _read_csv() -> pa.Table:
     return table.cast(pa.schema(fields))
 
 
+@dlt.resource(name="ceps", write_disposition="replace")
+def ceps() -> Iterator[pa.Table]:
+    print("  reading municipios-br SQLite database")
+    arrow = _read_from_sqlite()
+    print(f"  parsed {arrow.num_rows:,} rows × {arrow.num_columns} cols")
+    yield arrow
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     add_common_args(p, table_default=None, include_table=False)
     args = p.parse_args()
 
-    iceberg_table = catalog().load_table(TABLE)
-    current_rows = iceberg_table.scan().to_arrow().num_rows
-    print(f"  {TABLE}: {current_rows:,} rows currently")
+    try:
+        iceberg_table = catalog().load_table(f"{NAMESPACE}.{TABLE}")
+        current_rows = iceberg_table.scan().to_arrow().num_rows
+        print(f"  {NAMESPACE}.{TABLE}: {current_rows:,} rows currently")
+        if current_rows > 0:
+            if not args.full_refresh:
+                print(f"  {NAMESPACE}.{TABLE} já populada — pass --full-refresh para overwrite")
+                return 0
+            iceberg_table.delete()
+            print(f"  cleared {NAMESPACE}.{TABLE} — reloading")
+    except NoSuchTableError:
+        pass  # first run — the destination autocreates the table below.
 
-    if current_rows > 0 and not args.full_refresh:
-        print(f"  {TABLE} já populada — pass --full-refresh para overwrite")
-        return 0
-
-    print(f"  reading s3://{RAW_BUCKET}/{S3_KEY}")
-    arrow = _read_csv()
-    print(f"  parsed {arrow.num_rows:,} rows × {arrow.num_columns} cols")
-
-    iceberg_table.overwrite(arrow)
-    iceberg_table.refresh()
-    print(f"  ✓ overwrote {TABLE} → snapshot {iceberg_table.metadata.current_snapshot_id}")
+    pipe = dlt.pipeline(pipeline_name="ceps", destination=iceberg)
+    info = pipe.run(ceps())
+    print(info)
     return 0
 
 
