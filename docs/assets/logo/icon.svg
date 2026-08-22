@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- lakebrasil — unified iceberg silhouette with stratified data layers.
+       Single triangular wedge points up, sliced into 4 horizontal layers
+       in BR palette. References both "lake" (waterbody) and Apache
+       Iceberg (lakehouse format). -->
+  <title>lakebrasil</title>
+  <defs>
+    <linearGradient id="g-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#16c47e"/><stop offset="100%" stop-color="#0a8754"/>
+    </linearGradient>
+    <linearGradient id="g-yellow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd566"/><stop offset="100%" stop-color="#e8b03a"/>
+    </linearGradient>
+    <linearGradient id="g-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5cb8e8"/><stop offset="100%" stop-color="#2d7eb0"/>
+    </linearGradient>
+    <linearGradient id="g-navy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2c66a8"/><stop offset="100%" stop-color="#143962"/>
+    </linearGradient>
+    <!-- iceberg silhouette mask -->
+    <clipPath id="iceberg-clip">
+      <path d="M 64 16 L 108 104 L 20 104 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Iceberg triangle sliced into 4 strata via clipPath -->
+  <g clip-path="url(#iceberg-clip)">
+    <rect x="0" y="16"  width="128" height="22" fill="url(#g-green)"/>
+    <rect x="0" y="38"  width="128" height="22" fill="url(#g-yellow)"/>
+    <rect x="0" y="60"  width="128" height="22" fill="url(#g-blue)"/>
+    <rect x="0" y="82"  width="128" height="22" fill="url(#g-navy)"/>
+  </g>
+
+  <!-- subtle white separators between strata (1px) -->
+  <g clip-path="url(#iceberg-clip)" stroke="#ffffff" stroke-width="1" stroke-opacity="0.85">
+    <line x1="0" y1="38" x2="128" y2="38"/>
+    <line x1="0" y1="60" x2="128" y2="60"/>
+    <line x1="0" y1="82" x2="128" y2="82"/>
+  </g>
+</svg>
