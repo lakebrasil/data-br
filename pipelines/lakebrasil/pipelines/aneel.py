@@ -163,11 +163,7 @@ def main() -> int:
     args = _build_args()
 
     if not args.no_fetch:
-        try:
-            ensure_fetched("aneel_*", refresh=args.refresh)
-        except ValueError:
-            print("  [warn] assumindo s3://data-br-raw/aneel/raw/ já populado.",
-                  file=sys.stderr)
+        ensure_fetched("aneel", refresh=args.refresh)
 
     municipios_count()  # warm dim
     # Granularidade fina: filtra per-indicador. Permite re-run pegando

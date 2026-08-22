@@ -56,7 +56,7 @@ import xlrd
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_triples
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
+from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "snis/raw/"
@@ -241,7 +241,6 @@ def main() -> int:
         write_disposition="append",
     )
     def snis_indicadores() -> Iterator[dict]:
-        s3 = s3_client()
         keys = sorted(list_keys(S3_PREFIX))
         anos_filter = set(args.ano) if args.ano else None
         for key in keys:
@@ -254,7 +253,7 @@ def main() -> int:
                 continue
             t0 = time.monotonic()
             print(f"  SNIS download {name}", file=sys.stderr)
-            body = s3.get_object(Bucket=RAW_BUCKET, Key=key)["Body"].read()
+            body = get_object_bytes(key)
             for rec in _iter_snis_year(body, ano, co6_to_ibge, co6_to_uf):
                 if ("snis", rec["indicador_id"], rec["periodo"]) in already:
                     continue

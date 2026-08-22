@@ -115,6 +115,41 @@ def read_bytes(key: str) -> bytes:
 get_object_bytes = read_bytes
 
 
+def object_exists(key: str) -> bool:
+    """Mount: file exists; fallback: S3 HEAD."""
+    p = local_path(key)
+    if p is not None:
+        return p.exists()
+    try:
+        s3_client().head_object(Bucket=RAW_BUCKET, Key=key)
+        return True
+    except Exception:
+        return False
+
+
+def object_last_modified(key: str):
+    """Mount: file mtime; fallback: S3 HEAD's LastModified. Both return a
+    timezone-aware `datetime` — used by pipelines that snapshot-date a raw
+    file (e.g. "which day did we fetch this on")."""
+    p = local_path(key)
+    if p is not None:
+        import datetime as _dt
+        return _dt.datetime.fromtimestamp(p.stat().st_mtime, tz=_dt.UTC)
+    return s3_client().head_object(Bucket=RAW_BUCKET, Key=key)["LastModified"]
+
+
+def download_to_file(key: str, dest: Path) -> None:
+    """Materialize an object at a local filesystem path. Mount: copy from
+    the mounted file (no network); fallback: S3 download. For callers that
+    need a real path on disk (e.g. handing it to a C extension like py7zr
+    that can't stream from bytes)."""
+    p = local_path(key)
+    if p is not None:
+        dest.write_bytes(p.read_bytes())
+        return
+    s3_client().download_file(RAW_BUCKET, key, str(dest))
+
+
 def open_zip(key: str) -> zipfile.ZipFile:
     """Abre zip pra leitura. Mount: zipfile direto no FS (random access
     via FUSE/NFS); fallback: baixa pra memória + BytesIO.

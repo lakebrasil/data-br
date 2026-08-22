@@ -40,7 +40,7 @@ import dlt
 from lakebrasil.common.args import add_common_args
 from lakebrasil.common.fetch import ensure_fetched
 from lakebrasil.common.incremental import loaded_pairs
-from lakebrasil.common.s3 import RAW_BUCKET, list_keys, s3_client
+from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "datasus/raw/"
@@ -173,7 +173,7 @@ def main() -> int:
                 continue
             t0 = time.monotonic()
             print(f"  CNES download {key}", file=sys.stderr)
-            body = s3_client().get_object(Bucket=RAW_BUCKET, Key=key)["Body"].read()
+            body = get_object_bytes(key)
             inner = f"tbEstabelecimento{yyyymm}.csv"
             counter = _aggregate_estabelecimentos(body, inner, co6_to_ibge)
             for (ibge, indicador), qtd in counter.items():

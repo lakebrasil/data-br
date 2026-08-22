@@ -153,6 +153,19 @@ sources:
     out: "bacen/raw/"
     tier: 1
 
+  # Was a manually-staged, untracked S3 object with no fetch source at
+  # all — real URL confirmed live via ANEEL's CKAN package_show
+  # (dataset slug: siga-sistema-de-informacoes-de-geracao-da-aneel;
+  # the pipeline's own docstring had a stale/wrong slug).
+  aneel:
+    fetcher: http
+    url: "https://dadosabertos.aneel.gov.br/dataset/6d90b77c-c5f5-4d81-bdec-7bc619494bb9/resource/11ec447d-698d-4ab8-977f-b424d5deee6a/download/siga-empreendimentos-geracao.csv"
+    out_filename: "siga-empreendimentos-geracao.csv"
+    schedule: monthly
+    license: LAI
+    out: "aneel/raw/"
+    tier: 2
+
   # ── gov.br (F5 BIG-IP — needs urllib bypass) ────────────────────────
   anp_postos:
     fetcher: govbr
