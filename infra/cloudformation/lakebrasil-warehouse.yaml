@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  lakebrasil self-host (option A: AWS S3 Tables) — provisions an S3 Tables
+  bucket + a "data_br" namespace to use as your ICEBERG_WAREHOUSE, plus a
+  managed IAM policy scoped to that bucket for the pipeline's role/user.
+  Nothing else in your account is touched. See:
+  https://github.com/lakebrasil/data-br#self-host
+
+Parameters:
+  WarehouseName:
+    Type: String
+    Default: lakebrasil
+    AllowedPattern: "[a-z0-9][a-z0-9-]{2,62}"
+    Description: >
+      Name for the S3 Tables table bucket. Must be globally unique within
+      your account + region, lowercase, 3-63 chars.
+
+Resources:
+  TableBucket:
+    Type: AWS::S3Tables::TableBucket
+    Properties:
+      TableBucketName: !Ref WarehouseName
+
+  DataBrNamespace:
+    Type: AWS::S3Tables::Namespace
+    Properties:
+      TableBucketARN: !GetAtt TableBucket.TableBucketARN
+      Namespace:
+        - data_br
+
+  PipelineAccessPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub "${WarehouseName}-pipeline-access"
+      Description: >
+        Attach to the IAM user/role your lakebrasil pipelines run as.
+        Scoped to this table bucket and its tables/namespaces only.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: TableBucketAccess
+            Effect: Allow
+            Action:
+              - s3tables:*
+            Resource:
+              - !GetAtt TableBucket.TableBucketARN
+              - !Sub "${TableBucket.TableBucketARN}/*"
+
+Outputs:
+  IcebergWarehouseEnvValue:
+    Description: Set this as ICEBERG_WAREHOUSE.
+    Value: !GetAtt TableBucket.TableBucketARN
+  TableBucketArn:
+    Description: The S3 Tables table bucket ARN.
+    Value: !GetAtt TableBucket.TableBucketARN
+  PipelineAccessPolicyArn:
+    Description: >
+      Attach this managed policy to whatever IAM user/role runs
+      `lakebrasil run ...` (e.g. your AWS_PROFILE's principal).
+    Value: !Ref PipelineAccessPolicy

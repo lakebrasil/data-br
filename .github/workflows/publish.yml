@@ -3,15 +3,22 @@ name: Publish lakebrasil to PyPI
 # Publishes the lakebrasil pypi package on every GitHub Release tagged v*.
 # Uses PyPI Trusted Publishing (OIDC) — NO secrets needed.
 #
+# `on.release` has no built-in tag-glob filter (unlike `on.push.tags`), so
+# every job below gates on the tag itself — otherwise ANY release (e.g. a
+# `warehouse-YYYY-MM-DD` data-snapshot release) triggers a PyPI publish
+# attempt too. This bit us: the warehouse-2026-08-21 snapshot release
+# fired this workflow and failed at the PyPI step.
+#
 # Setup (one-time):
 #   1. Push this workflow to main
-#   2. On pypi.org → Account settings → Publishing → "Add a new pending publisher":
+#   2. On pypi.org, logged into the **lakebrasil PyPI Organization**
+#      (not a personal account) → Publishing → "Add a new pending publisher":
 #        PyPI Project Name: lakebrasil
 #        Owner: lakebrasil
 #        Repository name: data-br
 #        Workflow name: publish.yml
 #        Environment name: pypi
-#   3. Create a GitHub Release (Releases → Draft new release → tag v0.1.0)
+#   3. Create a GitHub Release tagged v0.1.0 (must start with "v")
 #   4. This workflow runs automatically, build + upload, no token required
 
 on:
@@ -23,6 +30,7 @@ jobs:
   build:
     name: Build distribution
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'v')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
