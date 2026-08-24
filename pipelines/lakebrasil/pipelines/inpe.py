@@ -1,8 +1,12 @@
 """INPE PRODES — Desmatamento Amazônia → indicadores_serie.
 
-Lê `s3://data-br-raw/inpe/raw/prodes_amazon_yearly.geojson` (polígonos
-de desmatamento anuais com geometria multipolygon) + `amazon-municipalities.zip`
-(shapefile dos 559 municípios do bioma Amazônia com `geocodigo`=IBGE 7-dig).
+Lê `s3://data-br-raw/inpe/raw/prodes_amazon_yearly_full.geojson` (polígonos
+de desmatamento anuais com geometria multipolygon, ~800K features —
+full PRODES series, paginado via WFS `startIndex` pelo fetcher
+`geoserver_wfs` porque o GeoServer da TerraBrasilis hard-cap a 50K
+features/response independente do `count` pedido) + `amazon-municipalities.zip`
+(shapefile dos 559 municípios do bioma Amazônia com `geocodigo`=IBGE 7-dig,
+via WFS layer `prodes-amazon-nb:municipalities_amazon_biome`).
 
 Spatial join: PRODES centroids → município contendo. Reproject pra
 SIRGAS 2000 Brazil Polyconic (EPSG:5880) pra usar áreas/centroids
@@ -11,11 +15,7 @@ corretamente.
 Agrega área desmatada por (município, ano) em km²:
   inpe.prodes_desmatamento_km2_ano       área desmatada no ano N
 
-⚠️  CAVEAT: o arquivo `prodes_amazon_yearly.geojson` no raw tem
-50.000 features, ~10x menor que o PRODES full (totais ~10x abaixo do
-publicado oficial INPE). Tratar como SAMPLE — para análise quantitativa
-exata baixar o dataset completo de terrabrasilis.dpi.inpe.br.
-Cobre 2008-2024 × 559 munis Amazônia = ~4.977 (muni,ano) pairs.
+Cobre 2008-2024 × 559 munis Amazônia.
 
 Uso:
     AWS_PROFILE=<seu-perfil> python -m lakebrasil.pipelines.inpe --no-fetch
@@ -40,7 +40,7 @@ from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.common.s3 import get_object_bytes
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
-S3_PRODES = "inpe/raw/prodes_amazon_yearly_full.zip"
+S3_PRODES = "inpe/raw/prodes_amazon_yearly_full.geojson"
 S3_MUNIS  = "inpe/raw/amazon-municipalities.zip"
 
 warnings.filterwarnings("ignore", message="Geometry is in a geographic CRS")
@@ -59,13 +59,27 @@ def _build_ibge_to_uf() -> dict[int, str]:
 
 def _iter_prodes(ibge_to_uf: dict[int, str]) -> Iterator[dict]:
     import geopandas as gpd
+    from shapely.ops import transform as _shapely_transform
+
     t0 = time.monotonic()
-    # Munis da Amazônia (shapefile)
+    # Munis da Amazônia (shapefile, gerado pelo WFS SHAPE-ZIP do
+    # GeoServer da TerraBrasilis).
     raw_munis = get_object_bytes(S3_MUNIS)
     with tempfile.TemporaryDirectory() as td:
         with zipfile.ZipFile(io.BytesIO(raw_munis)) as zf:
             zf.extractall(td)
         munis = gpd.read_file(os.path.join(td, "municipalities_amazon_biome.shp"))
+    # O .prj que o GeoServer grava nesse SHAPE-ZIP declara eixo
+    # EPSG-compliant (latitude, longitude) em vez da ordem tradicional
+    # de shapefile (X=lon, Y=lat) — GDAL/pyogrio honra essa declaração
+    # ao ler e entrega geometrias com x/y trocados (bounds saem tipo
+    # [-16.66, -73.98, 5.27, -43.40], i.e. lat nas colunas de x). Sem
+    # corrigir, o sjoin com PRODES (lon/lat normal) não bate quase nada
+    # (~2 hits em 800K). Troca x<->y manualmente e reforça o CRS.
+    munis["geometry"] = munis["geometry"].apply(
+        lambda geom: _shapely_transform(lambda x, y: (y, x), geom)
+    )
+    munis = munis.set_crs("EPSG:4674", allow_override=True)
     print(f"  INPE munis Amazônia: {len(munis):,} ({time.monotonic()-t0:.1f}s)",
           file=sys.stderr)
 
@@ -125,7 +139,7 @@ def _iter_prodes(ibge_to_uf: dict[int, str]) -> Iterator[dict]:
             "periodo": str(int(row["year"])),
             "valor": float(row["area_km"]),
             "valor_texto": None, "unidade": "km²",
-            "fonte_arquivo": "prodes_amazon_yearly_full.zip",
+            "fonte_arquivo": "prodes_amazon_yearly_full.geojson",
         }
         emitted += 1
     print(f"  INPE emitidos: {emitted:,} rows", file=sys.stderr)

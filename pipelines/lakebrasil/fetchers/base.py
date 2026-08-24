@@ -23,10 +23,16 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 from lakebrasil.common.s3 import RAW_BUCKET, local_path, s3_client
 
 MANIFEST_PREFIX = "_manifest"
+
+# Same computation as `lakebrasil.scripts.fetch.RAW_ROOT` (both modules
+# live directly under `lakebrasil/`) — recomputed locally to avoid a
+# circular import (scripts.fetch imports lakebrasil.fetchers).
+_RAW_ROOT = Path(__file__).resolve().parent.parent
 
 
 @dataclass(frozen=True)
@@ -42,14 +48,20 @@ class FetchResult:
 
 def s3_key_for_target(target) -> str:
     """Translate a FetchTarget's local out_path into the S3 key.
-    `target.out_path` is `data-br-sources/<source>/raw/<file>` →
-    `<source>/raw/<file>`."""
-    parts = target.out_path.parts
-    # Find the source dir (parent of 'raw') — anchor on the catalog `out:`.
-    # Simplest: take the last 3 components: source, 'raw', filename.
-    if len(parts) >= 3 and parts[-2] == "raw":
-        return f"{parts[-3]}/raw/{parts[-1]}"
-    return parts[-1]  # fallback
+
+    `target.out_path` is always `RAW_ROOT / <catalog `out:`> / <file>` —
+    the key is just that path relative to `RAW_ROOT`, e.g.
+    `bpc/raw/2020-01.zip` or a deeper `mec/raw/fnde_fundeb/FILE.csv`
+    (catalog `out:` isn't always exactly `<source>/raw/`)."""
+    try:
+        return target.out_path.resolve().relative_to(_RAW_ROOT).as_posix()
+    except ValueError:
+        # out_path somehow isn't under RAW_ROOT — fall back to the old
+        # best-effort heuristic instead of hard failing.
+        parts = target.out_path.parts
+        if len(parts) >= 3 and parts[-2] == "raw":
+            return f"{parts[-3]}/raw/{parts[-1]}"
+        return parts[-1]
 
 
 def manifest_key_for(source: str, s3_key: str) -> str:

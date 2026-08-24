@@ -27,13 +27,12 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import csv
+import datetime as _dt
 import io
 import re
 import sys
 import time
 import unicodedata
-import zipfile
 from collections import defaultdict
 from collections.abc import Iterator
 
@@ -46,9 +45,15 @@ from lakebrasil.common.incremental import loaded_triples
 from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
+import openpyxl
+
 S3_PREFIX = "sinesp/raw/"
-ZIP_FILE = "basededadosvde.zip"
-INNER_RE = re.compile(r"^BancoVDE (\d{4})\.csv$")
+# `basededadosvde.zip` (nunca existiu — suposição antiga do docstring)
+# não é o que o MJ realmente publica. O real é 1 xlsx por ano em
+# gov.br/mj/.../download/dnsp-base-de-dados/bancovde-{ano}.xlsx —
+# mesmas colunas (uf, municipio, evento, data_referencia, total_vitima,
+# ...) só que já num sheet único ao invés de CSV dentro de um zip.
+FILE_RE = re.compile(r"^bancovde-(\d{4})\.xlsx$", re.IGNORECASE)
 
 
 def _slug(text: str) -> str:
@@ -60,56 +65,39 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", s).strip("_")[:40]
 
 
-def _parse_date_br(s: str | None) -> str | None:
-    """1/1/2024 → 2024-01 (YYYY-MM)."""
-    if not s:
-        return None
-    parts = s.strip().split("/")
-    if len(parts) != 3:
-        return None
-    try:
-        _, m, y = int(parts[0]), int(parts[1]), int(parts[2])
-        return f"{y:04d}-{m:02d}"
-    except ValueError:
-        return None
-
-
-def _iter_year_csv(zip_bytes: bytes, ano: int) -> Iterator[dict]:
-    """Stream BancoVDE {ano}.csv → 1 row por (uf, mun, evento, periodo)
+def _iter_year_xlsx(xlsx_bytes: bytes, ano: int) -> Iterator[dict]:
+    """Stream bancovde-{ano}.xlsx → 1 row por (uf, mun, evento, periodo)
     pré-agregado em memória."""
-    target = f"BancoVDE {ano}.csv"
     accum: dict[tuple[str, str, str, str], int] = defaultdict(int)
     rows_seen = 0
-    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-        if target not in zf.namelist():
-            return
-        with zf.open(target) as fh:
-            # SINESP CSVs vêm em utf-8 (com BOM ou sem) ou latin-1
-            # dependendo do ano. Tentar utf-8 com replace evita
-            # UnicodeDecodeError em bytes 0xc2-0xff órfãos sem perder
-            # quase nenhum caractere útil (gov.br não usa Unicode raro
-            # em nomes de município).
-            text_io = io.TextIOWrapper(fh, encoding="utf-8-sig",
-                                       newline="", errors="replace")
-            reader = csv.DictReader(text_io, delimiter=";")
-            for r in reader:
-                rows_seen += 1
-                uf = (r.get("uf") or "").strip().upper()
-                mun = (r.get("municipio") or "").strip()
-                evento = (r.get("evento") or "").strip()
-                periodo = _parse_date_br(r.get("data_referencia"))
-                if not (uf and mun and evento and periodo):
-                    continue
-                # Use total_vitima quando disponível, senão soma 1 (cada
-                # row é 1 ocorrência registrada).
-                vitima = r.get("total_vitima") or "0"
-                try:
-                    qtd = int(vitima.strip()) if vitima.strip() else 1
-                except ValueError:
-                    qtd = 1
-                if qtd == 0:
-                    qtd = 1
-                accum[(uf, mun, evento, periodo)] += qtd
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes), read_only=True, data_only=True)
+    ws = wb[wb.sheetnames[0]]
+    header: list[str] | None = None
+    for row in ws.iter_rows(values_only=True):
+        if header is None:
+            header = [str(c).strip() if c else "" for c in row]
+            continue
+        rows_seen += 1
+        r = dict(zip(header, row))
+        uf = (r.get("uf") or "").strip().upper()
+        mun = (r.get("municipio") or "").strip()
+        evento = (r.get("evento") or "").strip()
+        data_ref = r.get("data_referencia")
+        periodo = (f"{data_ref.year:04d}-{data_ref.month:02d}"
+                   if isinstance(data_ref, _dt.datetime) else None)
+        if not (uf and mun and evento and periodo):
+            continue
+        # Use total_vitima quando disponível, senão soma 1 (cada
+        # row é 1 ocorrência registrada).
+        vitima = r.get("total_vitima")
+        try:
+            qtd = int(vitima) if vitima not in (None, "") else 1
+        except (ValueError, TypeError):
+            qtd = 1
+        if qtd == 0:
+            qtd = 1
+        accum[(uf, mun, evento, periodo)] += qtd
+    wb.close()
     print(f"  SINESP {ano}: {rows_seen:,} rows lidas → {len(accum):,} (uf,mun,evento,mes) "
           f"agregados", file=sys.stderr)
     skipped_ibge = 0
@@ -130,7 +118,7 @@ def _iter_year_csv(zip_bytes: bytes, ano: int) -> Iterator[dict]:
             "valor":         float(qtd),
             "valor_texto":   None,
             "unidade":       "ocorrencias",
-            "fonte_arquivo": ZIP_FILE,
+            "fonte_arquivo": f"bancovde-{ano}.xlsx",
         }
     if skipped_ibge:
         print(f"  SINESP {ano}: skipped {skipped_ibge:,} (uf,mun) sem ibge_match",
@@ -166,26 +154,23 @@ def main() -> int:
     )
     def sinesp_indicadores() -> Iterator[dict]:
         keys = sorted(list_keys(S3_PREFIX))
-        zip_key = next((k for k in keys if k.endswith(ZIP_FILE)), None)
-        if zip_key is None:
-            print(f"  [warn] {ZIP_FILE} não encontrado em raw", file=sys.stderr)
+        ano_to_key: dict[int, str] = {}
+        for key in keys:
+            name = key.rsplit("/", 1)[-1]
+            m = FILE_RE.match(name)
+            if m:
+                ano_to_key[int(m.group(1))] = key
+        if not ano_to_key:
+            print(f"  [warn] nenhum bancovde-*.xlsx encontrado em {S3_PREFIX}",
+                  file=sys.stderr)
             return
-        t0 = time.monotonic()
-        zip_bytes = get_object_bytes(zip_key)
-        print(f"  SINESP zip carregado em {time.monotonic()-t0:.1f}s "
-              f"({len(zip_bytes)/1e6:.0f} MB)", file=sys.stderr)
-        # Descobre anos disponíveis dentro do zip.
-        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
-            anos = sorted({
-                int(m.group(1)) for n in zf.namelist()
-                if (m := INNER_RE.match(n))
-            })
-        print(f"  SINESP anos no zip: {anos}", file=sys.stderr)
-        for ano in anos:
+        print(f"  SINESP anos disponíveis: {sorted(ano_to_key)}", file=sys.stderr)
+        for ano in sorted(ano_to_key):
             if args.year and ano != args.year:
                 continue
             t0 = time.monotonic()
-            for rec in _iter_year_csv(zip_bytes, ano):
+            xlsx_bytes = get_object_bytes(ano_to_key[ano])
+            for rec in _iter_year_xlsx(xlsx_bytes, ano):
                 if ("sinesp", rec["indicador_id"], rec["periodo"]) in already:
                     continue
                 yield rec

@@ -30,7 +30,11 @@ from lakebrasil.common.s3 import RAW_BUCKET, list_keys, local_path, s3_client
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "orcamento/raw/"
-FILE_RE = re.compile(r"^(\d{6})_despesas-execucao\.zip$")
+# Fetcher (transparencia.py) grava como "{YYYY}-{MM}.zip" — não
+# "{YYYYMM}_despesas-execucao.zip" como este regex esperava antes (nunca
+# batia com nada gravado de verdade, então o pipeline sempre agregava 0
+# linhas apesar de "LOADED" com exit 0).
+FILE_RE = re.compile(r"^(\d{4})-(\d{2})\.zip$")
 
 
 def _build_uf_slug_map() -> dict[tuple[str, str], int]:
@@ -172,7 +176,7 @@ def main() -> int:
             m = FILE_RE.match(name)
             if not m:
                 continue
-            ym = m.group(1)
+            ym = m.group(1) + m.group(2)
             if args.month and ym != args.month:
                 continue
             t0 = time.monotonic()

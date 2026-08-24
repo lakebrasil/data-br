@@ -227,7 +227,7 @@ class TestLoadRealCatalog:
             assert len(targets) > 0, f"source {name!r} expanded to zero targets"
 
     def test_every_source_has_a_known_fetcher(self):
-        known = {"http", "govbr", "transparencia", "bcb_sgs", "webdav"}
+        known = {"http", "govbr", "transparencia", "bcb_sgs", "webdav", "ftp", "geoserver_wfs"}
         sources = cat.load_catalog()
         unknown = {s.fetcher for s in sources.values()} - known
         assert not unknown, f"catalog.yaml references undeclared fetcher(s): {unknown}"

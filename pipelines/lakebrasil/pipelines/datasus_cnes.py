@@ -44,7 +44,10 @@ from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "datasus/raw/"
-ZIP_RE = re.compile(r"^cnes_(\d{6})\.zip$")  # cnes_202503.zip
+# ftp.datasus.gov.br/cnes/ grava como "BASE_DE_DADOS_CNES_{YYYYMM}.ZIP"
+# — não "cnes_{YYYYMM}.zip" como o docstring antigo assumia (nunca
+# batia com nada real, então o pipeline sempre lia 0 arquivos).
+ZIP_RE = re.compile(r"^BASE_DE_DADOS_CNES_(\d{6})\.ZIP$", re.IGNORECASE)
 
 # NIVEL_DEP no CNES: 1-4 = gestão municipal/estadual/federal (público),
 # 5-6 = privado / outros.

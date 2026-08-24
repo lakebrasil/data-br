@@ -65,7 +65,10 @@ from lakebrasil.common.s3 import get_object_bytes, list_keys
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "inep/raw/"
-ZIP_RE = re.compile(r"^censo_escolar_(\d{4})\.zip$")
+# download.inep.gov.br grava como "microdados_censo_escolar_{ano}.zip" —
+# não "censo_escolar_{ano}.zip" (nome antigo do docstring nunca bateu
+# com o arquivo real baixado, então o pipeline sempre lia 0 arquivos).
+ZIP_RE = re.compile(r"^microdados_censo_escolar_(\d{4})\.zip$")
 
 # (col_name, indicador_suffix, mode)
 # mode='count' → 1 row aggregator counts escolas com cond. (TP_X == val)

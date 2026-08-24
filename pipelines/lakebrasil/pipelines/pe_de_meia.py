@@ -38,7 +38,11 @@ from lakebrasil.pipelines.bpc import _build_ibge_to_uf, _process_month
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
 S3_PREFIX = "mec/raw/"
-FILE_RE = re.compile(r"^pe-de-meia_(\d{4})(\d{2})\.zip$")
+# Portal Transparência's `transparencia` fetcher lands files as
+# `{YYYY}-{MM}.zip` (same as bpc/bolsa_familia/orcamento) — the catalog
+# has no per-target `out_filename` templating, so accept that naming
+# too instead of only the docstring's `pe-de-meia_{YYYYMM}.zip`.
+FILE_RE = re.compile(r"^(?:pe-de-meia_(\d{4})(\d{2})|(\d{4})-(\d{2}))\.zip$")
 PARALLEL_MONTHS = 4
 FONTE = "pdm"
 
@@ -96,7 +100,8 @@ def main() -> int:
         m = FILE_RE.match(name)
         if not m:
             continue
-        ym = f"{m.group(1)}-{m.group(2)}"
+        ym = (f"{m.group(1)}-{m.group(2)}" if m.group(1)
+              else f"{m.group(3)}-{m.group(4)}")
         ym_to_key[ym] = key
     if args.ym:
         ym_to_key = {y: k for y, k in ym_to_key.items() if y in args.ym}

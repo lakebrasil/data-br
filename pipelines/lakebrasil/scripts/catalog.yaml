@@ -73,9 +73,14 @@ sources:
     out: "camara/raw/"
     tier: 1
 
+  # The download-de-dados landing page is a JS SPA behind AWS WAF (no
+  # direct file at that URL — it 302s to a per-dataset CGU S3 bucket
+  # once you hit .../emendas-parlamentares/UNICO). That final S3-backed
+  # URL is stable and needs no cookies/WAF bypass, so fetch it directly.
   emendas_parlamentares:
-    fetcher: transparencia
-    url: "https://portaldatransparencia.gov.br/download-de-dados/emendas-parlamentares"
+    fetcher: http
+    url: "https://dadosabertos-download.cgu.gov.br/PortalDaTransparencia/saida/emendas-parlamentares/EmendasParlamentares.zip"
+    out_filename: "emendas-parlamentares.zip"
     schedule: weekly
     license: CC0
     out: "emendas/raw/"
@@ -127,6 +132,68 @@ sources:
     license: CC0
     out: "cnep/raw/"
     tier: 1
+
+  # IBGE Localidades API — regiões metropolitanas oficiais + municípios
+  # membros. Endpoint estável, JSON direto (sem antibot). Pipeline
+  # ibge_geo.py espera exatamente esse shape: lista de {id, nome, UF,
+  # municipios: [{id, nome}]}.
+  ibge_regioes_metropolitanas:
+    fetcher: http
+    url: "https://servicodados.ibge.gov.br/api/v1/localidades/regioes-metropolitanas"
+    out_filename: "regioes_metropolitanas.json"
+    schedule: yearly
+    license: CC0
+    out: "ibge/raw/"
+    tier: 2
+
+  # ── FNDE (ftp2.fnde.gov.br dadosabertos — plain anonymous FTP) ──────
+  # Confirmed live via the FNDE gov.br "arquivos-dados-analiticos" /
+  # downloads pages, which still link straight at this legacy FTP host.
+  fnde_fundeb:
+    fetcher: ftp
+    url: "ftp://ftp2.fnde.gov.br/dadosabertos/FUNDEB/FUNDEB_REPASSES.csv"
+    out_filename: "FUNDEB_REPASSES.csv"
+    schedule: yearly
+    license: LAI
+    out: "mec/raw/fnde_fundeb/"
+    tier: 2
+
+  fnde_siope:
+    fetcher: ftp
+    url: "ftp://ftp2.fnde.gov.br/dadosabertos/SIOPE/DADOS_CONSOLIDADOS_2019.CSV"
+    out_filename: "DADOS_CONSOLIDADOS_2019.csv"
+    schedule: yearly
+    license: LAI
+    out: "mec/raw/fnde_siope/"
+    tier: 2
+
+  # ── INPE TerraBrasilis (PRODES Amazônia Legal — GeoServer WFS) ──────
+  # GetCapabilities on https://terrabrasilis.dpi.inpe.br/geoserver/ows
+  # confirms workspace `prodes-amazon-nb` has exactly the two layers
+  # the pipeline expects: `municipalities_amazon_biome` (559 munis,
+  # `geocodigo` field) and `yearly_deforestation_biome` (`year` +
+  # `area_km` fields, ~800K polygons total). This GeoServer hard-caps
+  # GetFeature at 50,000 features/response regardless of `count` — the
+  # ~50K "sample" the old raw file had was exactly that cap, not a
+  # real subset choice. `geoserver_wfs` fetcher pages via `startIndex`
+  # and reassembles the full FeatureCollection as one .geojson.
+  inpe_prodes:
+    fetcher: geoserver_wfs
+    url: "https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=prodes-amazon-nb:yearly_deforestation_biome&outputFormat=application/json"
+    out_filename: "prodes_amazon_yearly_full.geojson"
+    schedule: yearly
+    license: CC0
+    out: "inpe/raw/"
+    tier: 2
+
+  inpe_municipios:
+    fetcher: http
+    url: "https://terrabrasilis.dpi.inpe.br/geoserver/ows?service=WFS&version=2.0.0&request=GetFeature&typeName=prodes-amazon-nb:municipalities_amazon_biome&outputFormat=SHAPE-ZIP"
+    out_filename: "amazon-municipalities.zip"
+    schedule: yearly
+    license: CC0
+    out: "inpe/raw/"
+    tier: 2
 
   # ── BACEN macro series (BCB SGS) ───────────────────────────────────
   bacen_ipca_mensal:
@@ -291,4 +358,251 @@ sources:
     schedule: yearly
     license: LAI
     out: "sinisa/raw/"
+    tier: 2
+
+  # ── DENATRAN/SENATRAN — frota por município e tipo ──────────────────
+  # `fetcher: govbr`'s hardcoded "Python-urllib/3.13" UA gets a hard 403
+  # from gov.br/transportes's WAF (verified via curl); plain `http`
+  # fetcher's UA ("data-br-fetch/0.1 ...") is accepted (curl-verified
+  # 200 + real .xlsx payload), so use that fetcher here instead.
+  denatran_frota:
+    fetcher: http
+    url: "https://www.gov.br/transportes/pt-br/assuntos/transito/conteudo-Senatran/FrotapormunicipioetipoDezembro2024.xlsx"
+    out_filename: "FrotapormunicipioetipoDezembro2024.xlsx"
+    schedule: monthly
+    license: LAI
+    out: "denatran/raw/"
+    tier: 2
+
+  # ── STN (Tesouro Transparente) — transferências obrigatórias por
+  # município, CKAN dataset 3b5a779d-78f5-4602-a6b7-23ece6d60f27. All
+  # 8 resource URLs curl-verified 200 + real CSV payload. `iof-gold`
+  # renamed via out_filename — the real CKAN resource is named
+  # "iof-por-municipio.csv" but stn.py's INDICADORES dict expects
+  # "iof-gold-por-municipio.csv".
+  stn_fpm:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/d69ff32a-6681-4114-81f0-233bb6b17f58/download/fpm-por-municipio.csv"
+    out_filename: "fpm-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_fundeb:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/18d5b0ae-8037-461e-8685-3f0d7752a287/download/fundeb-por-municipio.csv"
+    out_filename: "fundeb-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_itr:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/f6ad4e51-fc7e-40bb-b35a-3686da7fde2d/download/itr-por-municipio.csv"
+    out_filename: "itr-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_cide:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/18820d64-95fd-4475-b391-e07d62a376ae/download/cide-por-municipio.csv"
+    out_filename: "cide-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_iof_gold:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/4248cd95-6d79-4520-9e17-48322eab6259/download/iof-por-municipio.csv"
+    out_filename: "iof-gold-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_fex:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/4ca6aad2-fa9d-48e1-a608-5614578d7df2/download/fex-por-municipio.csv"
+    out_filename: "fex-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_lc_176:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/c833631a-0933-4e43-a0a5-f77c2fa2267d/download/lc-176-por-municipio.csv"
+    out_filename: "lc-176-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  stn_lc_8796:
+    fetcher: http
+    url: "https://www.tesourotransparente.gov.br/ckan/dataset/3b5a779d-78f5-4602-a6b7-23ece6d60f27/resource/06aed495-8f46-4852-97f1-ae49822aa179/download/lc-8796-por-municipio.csv"
+    out_filename: "lc-8796-por-municipio.csv"
+    schedule: monthly
+    license: CC0
+    out: "stn/raw/"
+    tier: 2
+
+  # ── INEP Censo Escolar — microdados (direto, sem antibot) ───────────
+  # download.inep.gov.br grava como "microdados_censo_escolar_{ano}.zip"
+  # (não "censo_escolar_{ano}.zip" como o docstring antigo do pipeline
+  # dizia — ZIP_RE em inep.py corrigido pra bater com o nome real).
+  inep_censo_escolar:
+    fetcher: http
+    pattern: "https://download.inep.gov.br/dados_abertos/microdados_censo_escolar_{ano}.zip"
+    params:
+      ano: { list: ["2020", "2021", "2022", "2023", "2024"] }
+    schedule: yearly
+    license: LAI
+    out: "inep/raw/"
+    tier: 2
+
+  # ── MEC Censo da Educação Superior — microdados (direto, sem antibot)
+  mec_ed_superior_censo:
+    fetcher: http
+    pattern: "https://download.inep.gov.br/microdados/microdados_censo_da_educacao_superior_{ano}.zip"
+    params:
+      ano: { list: ["2020", "2021", "2022", "2023", "2024"] }
+    schedule: yearly
+    license: LAI
+    out: "mec/raw/"
+    tier: 2
+
+  # ── ANP — Levantamento de Preços de Combustíveis (semanal, município)
+  # Não existe "precos-{produto}-{ano-mes}.csv" (nunca existiu) — o real
+  # é este XLSX multi-ano já agregado por semana/município/produto.
+  # HEAD é 403 no F5 WAF do gov.br mas GET funciona (mesmo padrão do
+  # denatran_frota acima) — fetcher http comum resolve.
+  anp_precos_semanal_municipio_2024:
+    fetcher: http
+    url: "https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/precos-revenda-e-de-distribuicao-combustiveis/shlp/semanal/semanal-municipio-2024-2025.xlsx"
+    out_filename: "semanal-municipio-2024-2025.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "anp/raw/"
+    tier: 2
+
+  anp_precos_semanal_municipio_2026:
+    fetcher: http
+    url: "https://www.gov.br/anp/pt-br/assuntos/precos-e-defesa-da-concorrencia/precos/precos-revenda-e-de-distribuicao-combustiveis/shlp/semanal/semanal-municipios-2026.xlsx"
+    out_filename: "semanal-municipios-2026.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "anp/raw/"
+    tier: 2
+
+  # ── DataSUS CNES (ftp.datasus.gov.br — plain anonymous FTP) ─────────
+  # Real name é "BASE_DE_DADOS_CNES_{YYYYMM}.ZIP" — não "cnes_{YYYYMM}.zip"
+  # como o pipeline assumia (ZIP_RE corrigido pra bater). Um mês só
+  # (~700MB) já dá sinal real; histórico completo fica pra um catalog
+  # entry com `pattern` quando o disco/tempo permitir mais meses.
+  cnes_202607:
+    fetcher: ftp
+    url: "ftp://ftp.datasus.gov.br/cnes/BASE_DE_DADOS_CNES_202607.ZIP"
+    out_filename: "BASE_DE_DADOS_CNES_202607.ZIP"
+    schedule: monthly
+    license: LAI
+    out: "datasus/raw/"
+    tier: 2
+
+  # ── RAIS Estabelecimentos (ftp.mtps.gov.br/pdet — plain FTP) ────────
+  # Real arquivo é "RAIS_ESTAB_PUB.7z" (sem ano no nome — o ano é o
+  # diretório) — renomeado via out_filename pra bater com o
+  # RAIS_ESTAB_{ano}.7z que rais_estab.py espera.
+  rais_estab_2024:
+    fetcher: ftp
+    url: "ftp://ftp.mtps.gov.br/pdet/microdados/RAIS/2024/RAIS_ESTAB_PUB.7z"
+    out_filename: "RAIS_ESTAB_2024.7z"
+    schedule: yearly
+    license: LAI
+    out: "rais/raw/"
+    tier: 2
+
+  # ── SNIS — última edição (AE2022) antes da migração pra SINISA ──────
+  # snis.gov.br está desativado (cert TLS aponta pra *.cidades.gov.br,
+  # host antigo app4.mdr.gov.br não resolve mais) — arquivo real ainda
+  # vive em gov.br/cidades sob o produto "diagnósticos SNIS". HEAD 403
+  # no F5 WAF, GET funciona (mesmo padrão do denatran/anp acima).
+  snis_ae2022:
+    fetcher: http
+    url: "https://www.gov.br/cidades/pt-br/acesso-a-informacao/acoes-e-programas/saneamento/snis/produtos-do-snis/diagnosticos/Planilhas_AE2022.zip"
+    out_filename: "Planilhas_AE2022.zip"
+    schedule: yearly
+    license: LAI
+    out: "snis/raw/"
+    tier: 2
+
+  # ── Pé-de-Meia (Portal Transparência, same shape as bpc/orcamento) ──
+  # /download-de-dados/pe-de-meia/{ym} 302s to a real
+  # dadosabertos-download.cgu.gov.br zip (curl-verified 200, ~90MB,
+  # matches the pipeline's own docstring size estimate). Catalog has no
+  # per-target out_filename templating, so this lands as `{ym}.zip`
+  # (same as bpc) — pe_de_meia.py's FILE_RE now accepts that shape too.
+  pe_de_meia_mensal:
+    fetcher: transparencia
+    pattern: "https://portaldatransparencia.gov.br/download-de-dados/pe-de-meia/{ym}"
+    params:
+      ym: { monthly_range: ["2024-03", "today"] }
+    schedule: monthly
+    license: CC0
+    out: "mec/raw/"
+    tier: 2
+
+  # ── ANS — Informações Consolidadas de Beneficiários (dadosabertos.ans.gov.br)
+  # Plain anonymous HTTP index (no antibot). Real filename matches the
+  # pipeline's own docstring exactly: pda-024-icb-{UF}-{YYYY_MM}.zip.
+  # `ym` needs underscore not dash (transparencia-style monthly_range
+  # gives dashes) so it's a literal `list` for one recent month.
+  ans_icb:
+    fetcher: http
+    pattern: "https://dadosabertos.ans.gov.br/FTP/PDA/informacoes_consolidadas_de_beneficiarios-024/{ym_nodash}/pda-024-icb-{uf}-{ym}.zip"
+    params:
+      uf: { ufs: true }
+      ym: { list: ["2025_06"] }
+      ym_nodash: { list: ["202506"] }
+    schedule: monthly
+    license: CC0
+    out: "ans/raw/"
+    tier: 2
+
+  # ── SINESP — MJ "dnsp-base-de-dados" (1 xlsx por ano, não um zip) ───
+  # `basededadosvde.zip` nunca existiu — real é
+  # gov.br/mj/.../download/dnsp-base-de-dados/bancovde-{ano}.xlsx
+  # (curl-verified 200 for 2022-2025). sinesp.py rewritten to read
+  # per-year xlsx (same uf/municipio/evento/data_referencia/
+  # total_vitima columns the docstring already described).
+  sinesp_2023:
+    fetcher: http
+    url: "https://www.gov.br/mj/pt-br/assuntos/sua-seguranca/seguranca-publica/estatistica/download/dnsp-base-de-dados/bancovde-2023.xlsx/@@download/file"
+    out_filename: "bancovde-2023.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "sinesp/raw/"
+    tier: 2
+
+  sinesp_2024:
+    fetcher: http
+    url: "https://www.gov.br/mj/pt-br/assuntos/sua-seguranca/seguranca-publica/estatistica/download/dnsp-base-de-dados/bancovde-2024.xlsx/@@download/file"
+    out_filename: "bancovde-2024.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "sinesp/raw/"
+    tier: 2
+
+  sinesp_2025:
+    fetcher: http
+    url: "https://www.gov.br/mj/pt-br/assuntos/sua-seguranca/seguranca-publica/estatistica/download/dnsp-base-de-dados/bancovde-2025.xlsx/@@download/file"
+    out_filename: "bancovde-2025.xlsx"
+    schedule: yearly
+    license: LAI
+    out: "sinesp/raw/"
     tier: 2

@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import io
 import sys
+import zipfile
 from collections.abc import Iterator
 
 import dlt
@@ -23,7 +24,9 @@ from lakebrasil.common.incremental import loaded_snapshots
 from lakebrasil.common.s3 import get_object_bytes, object_last_modified
 from lakebrasil.pipelines.destinations.s3tables import s3tables_iceberg
 
-S3_KEY = "emendas/raw/EmendasParlamentares.csv"
+# A URL do Portal da Transparência serve um ZIP (não um CSV solto); o
+# fetcher `transparencia` grava em .../emendas-parlamentares.zip.
+S3_KEY = "emendas/raw/emendas-parlamentares.zip"
 
 HEADER_TO_FIELD = {
     "codigo da emenda":                "codigo_emenda",
@@ -69,7 +72,11 @@ def emendas() -> Iterator[dict]:
     if snapshot in loaded_snapshots("emendas_parlamentares"):
         print(f"  emendas: snapshot {snapshot} já carregado — skip")
         return
-    fh = io.BytesIO(get_object_bytes(S3_KEY))
+    with zipfile.ZipFile(io.BytesIO(get_object_bytes(S3_KEY))) as zf:
+        csv_name = next((n for n in zf.namelist() if n.lower().endswith(".csv")), None)
+        if not csv_name:
+            raise FileNotFoundError(f"nenhum .csv dentro de {S3_KEY}")
+        fh = io.BytesIO(zf.read(csv_name))
     for rec in read_csv_records(fh, HEADER_TO_FIELD,
                                 extra_fields={"snapshot": snapshot}):
         for k in ("ibge_code", "ano_emenda"):
